@@ -1,4 +1,4 @@
-"""Tests for the ecoMAX360i Grant climate entity."""
+"""Tests for the ecoMAX360i climate entity."""
 
 import json
 from pathlib import Path
