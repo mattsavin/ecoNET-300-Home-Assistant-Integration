@@ -118,12 +118,12 @@
       },
       "device_settings": {
         "title": "Ustawienia urządzeń",
-        "description": "Wybierz sposób grupowania encji w urządzenia. Podział tworzy osobne urządzenia dla każdego komponentu (kocioł, mieszacze, lambda, ecoSTER itd.). Pojedyncze łączy wszystko w jedno urządzenie.",
+        "description": "Wybierz sposób grupowania encji w urządzenia. Split (domyślnie) zachowuje dotychczasowy podział na komponenty (kocioł, mieszacze, lambda, ecoSTER itd.). Single łączy wszystko w jedno urządzenie. Heat pump components (opt-in) to opcjonalny podział na obsługiwane urządzenia fizyczne i logiczne grupy ogrzewania, wyłącznie dla sterowników ecoMAX360i z protokołem gm3_pomp. Identyfikatory encji pozostają bez zmian, ale po włączeniu tego trybu i po powrocie sprawdź automatyzacje wskazujące urządzenia oraz przypisania do obszarów; automatyzacje nie są przepisywane automatycznie.",
         "data": {
           "device_grouping": "Grupowanie urządzeń"
         },
         "data_description": {
-          "device_grouping": "Podział (osobne urządzenia) lub Pojedyncze (jedno połączone urządzenie). Identyfikatory encji pozostają bez zmian."
+          "device_grouping": "Split, Single lub Heat pump components (opt-in). Tryb komponentów zmienia przypisanie encji i hierarchię urządzeń, mimo zachowania pierwotnego urządzenia bramki. W obu kierunkach sprawdź automatyzacje wskazujące urządzenia i przypisania do obszarów; automatycznie nadawane nazwy mogą się zmienić."
         }
       },
       "polling_settings": {
@@ -187,6 +187,26 @@
     },
     "abort": {
       "no_unmapped_params": "Brak niezmapowanych parametrów dla wybranego endpointu."
+    }
+  },
+  "device": {
+    "hp_controller": {
+      "name": "Sterownik"
+    },
+    "hp_outdoor": {
+      "name": "Jednostka zewnętrzna pompy ciepła"
+    },
+    "hp_thermostat": {
+      "name": "Termostat pokojowy {number}"
+    },
+    "hp_circuit": {
+      "name": "Obieg grzewczy {number}"
+    },
+    "hp_dhw": {
+      "name": "Zasobnik CWU"
+    },
+    "hp_buffer": {
+      "name": "Bufor"
     }
   },
   "entity": {

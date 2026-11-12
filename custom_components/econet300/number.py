@@ -29,6 +29,7 @@ from .common_functions import (
     camel_to_snake,
     ecoster_exists,
     find_merged_param_by_key,
+    friendly_edit_param_name,
     get_duplicate_display_name,
     get_duplicate_entity_key,
     get_validated_entity_component,
@@ -43,7 +44,6 @@ from .const import (
     DOMAIN,
     ECOSTER_SETPOINT_PARAMS,
     ECOSTER_SETPOINT_PARAMS_ENABLED,
-    EDIT_PARAM_FRIENDLY_NAMES,
     ENTITY_MAX_VALUE,
     ENTITY_MIN_VALUE,
     ENTITY_NUMBER_SENSOR_DEVICE_CLASS_MAP,
@@ -59,6 +59,7 @@ from .const import (
     SERVICE_COORDINATOR,
     UNIT_NAME_TO_HA_UNIT,
 )
+from .device_grouping import edit_param_device_info
 from .entity import (
     EconetEntity,
     EcoSterEntity,
@@ -241,6 +242,7 @@ class EconetNumber(EconetEntity, NumberEntity):
                 self.api,
                 single_device=self.coordinator.single_device_tree,
                 via_device_id=self.coordinator.controller_device_id,
+                coordinator=self.coordinator,
             )
         # Fall back to parent class device_info (main boiler device)
         return super().device_info
@@ -1417,7 +1419,7 @@ class EditParamNumber(CoordinatorEntity[EconetDataCoordinator], NumberEntity):
 
         info = (coordinator.data or {}).get("editParamCatalog", {}).get(self._pid, {})
         pname = info.get("name", f"Param {self._pid}")
-        display_name = EDIT_PARAM_FRIENDLY_NAMES.get(pname, pname)
+        display_name = friendly_edit_param_name(pname)
         self._use_number_suffix = bool(
             info.get("expose_number") and info.get("kind") != "number"
         )
@@ -1486,8 +1488,11 @@ class EditParamNumber(CoordinatorEntity[EconetDataCoordinator], NumberEntity):
 
     @property
     def device_info(self) -> DeviceInfo | None:
-        """Return the main ecoNET300 device info for this entity."""
-        return self._attr_device_info
+        """Return component ownership while preserving the editParams unique ID."""
+        return (
+            edit_param_device_info(self.coordinator, self._api, self._pid)
+            or self._attr_device_info
+        )
 
 
 def _create_edit_param_numbers(

@@ -16,6 +16,58 @@ Complete reference for all entities provided by the ecoNET300 Home Assistant Int
 
 ---
 
+## Heat pump component ownership
+
+With **Heat pump components (opt-in)**, existing entities are regrouped only on ecoMAX360i controllers
+using `gm3_pomp`. **Split remains the default**. Enable the new mode under
+[Device settings](CONFIGURATION.md#device-settings); review the
+[migration safeguards](MIGRATION.md#heat-pump-components-opt-in) first.
+
+Identifiers below are integration identifiers based on the existing gateway `<uid>`, not independently
+discovered serial numbers for every component.
+
+| Group | Identifier | Ownership |
+| ----- | ---------- | --------- |
+| ecoNET300 gateway | `<uid>` | Existing root device; network, gateway firmware and connection health. |
+| Controller | `<uid>-controller` | Physical PLUM controller; controller metadata and unclassified controls. |
+| Heat pump outdoor unit | `<uid>-heat-pump` | Supported outdoor-unit temperatures, status, power and energy. |
+| Room thermostat N | `<uid>-thermostat-N` | Physical room sensor's measured temperature, separate from the circuit. |
+| Heating circuit N | `<uid>-circuit-N` | Logical circuit; climate, circuit modes, targets and related settings. |
+| DHW cylinder | `<uid>-huw` | Logical DHW group; existing water heater, boost and DHW-specific controls. |
+| Buffer | `<uid>-buffer` | Logical buffer group; buffer temperatures and settings when present. |
+
+**Heating circuits only** use real child devices under the controller where the child-device API is available
+(Home Assistant 2026.9+). Older supported versions use ordinary `SERVICE`-type devices linked to the controller.
+**DHW and buffer remain ordinary `SERVICE`-type devices on all supported versions**, reusing their legacy
+identifiers without converting them to children. This keeps switching back to Split reversible; vessels do not
+gain child-device target or area inheritance. These logical groups are not extra physical controllers, and their
+manufacturer, model and firmware are not invented or copied from the gateway. Only the PLUM controller uses
+the reported `controllerID` as its model and `moduleASoftVer` as firmware when available. No outdoor-unit
+brand/model or room-thermostat hardware identity is guessed.
+
+### Capability gates and limitations
+
+- Outdoor-unit grouping requires a valid measured outdoor-unit temperature, not just a dormant status key.
+- Circuit 1 requires an actual `TempClutch` reading or a working room thermostat. Additional circuits require
+  their own measured `TempCircuitN`; configuration defaults alone do not establish a circuit.
+- Room thermostats require a measured room temperature for a supported circuit. Default zero readings do not
+  establish a connected thermostat. No room humidity entity is added.
+- DHW requires a valid `TempCWU` reading and the named `HDWTSetPoint` parameter. This grouping gate does not
+  relax the existing water-heater and boost controls' own editable-metadata requirements.
+- Buffer grouping requires schematic `Bufor[1]` to be true. Only when that schematic information is absent
+  can older firmware use buffer configuration plus a valid buffer temperature as inferred presence.
+  A finite `TempBuforDown` reading alone does not prove a buffer is fitted.
+- Temperature checks reject disconnected sentinels `999` and `65535`, non-finite values and booleans.
+  Previously discovered component devices are retained during transient missing/disconnected readings.
+- Ambiguous controls remain on the controller. This mode does not decode undocumented `heating_work_state`
+  or `heating_mod_settings`, add an immersion-heater switch, or create new control capabilities.
+
+Entity domains, platforms and unique IDs do not change; existing entity IDs, history and user overrides
+remain intact. Device grouping is not a hardware inventory guarantee and does not make every component
+independently controllable or identifiable.
+
+---
+
 ## Climate
 
 Supported ecoMAX360i controllers using the `gm3_pomp` protocol expose a **Circuit 1** climate entity

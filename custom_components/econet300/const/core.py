@@ -153,6 +153,7 @@ STALE_AFTER_SECONDS = 600
 # (split) or merged under a single PLUM ecoNET300 device (single).
 CONF_DEVICE_GROUPING = "device_grouping"
 DEVICE_GROUPING_SPLIT = "split"
+DEVICE_GROUPING_COMPONENTS = "components"
 DEVICE_GROUPING_SINGLE = "single"
 DEFAULT_DEVICE_GROUPING = DEVICE_GROUPING_SPLIT
 

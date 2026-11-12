@@ -31,6 +31,7 @@ from .const import (
     COMPONENT_MIXER_6,
     COMPONENT_SOLAR,
     DEFAULT_COMPONENT_STATUS,
+    EDIT_PARAM_FRIENDLY_NAMES,
     NUMBER_OF_AVAILABLE_MIXERS,
     SCHEDULE_TYPE_REVERSE_MAP,
     STATIC_REGPARAMS_DATA_IDS,
@@ -365,6 +366,61 @@ def should_be_switch_entity(param: dict) -> bool:
 
     # Check if enum values represent binary pattern
     return is_binary_enum(enum_values)
+
+
+_EDIT_PARAM_WORD_MAP = {
+    "bufor": "buffer",
+    "corr": "correction",
+    "cwu": "DHW",
+    "dhw": "DHW",
+    "hdw": "DHW",
+    "hist": "hysteresis",
+    "hp": "HP",
+    "mths": "MTHS",
+    "rad": "radiator",
+    "sett": "settings",
+    "smartgrid": "Smart Grid",
+    "ssa": "SSA",
+    "supp": "supplementary",
+    "thr": "threshold",
+    "timestop": "stop time",
+    "timework": "work time",
+    "valveopeningtime": "valve opening time",
+}
+
+
+def friendly_edit_param_name(name: str) -> str:
+    """Return a readable display name for a raw editParams parameter key."""
+    if not name:
+        return name
+    explicit = EDIT_PARAM_FRIENDLY_NAMES.get(name)
+    if explicit is not None:
+        return explicit
+
+    if name.startswith("EPowerWorldRegisters"):
+        suffix = name.removeprefix("EPowerWorldRegisters")
+        if suffix.isdigit():
+            return f"Heat pump register {suffix}"
+
+    spaced = name.replace("_", " ")
+    spaced = re.sub(r"([a-z])([A-Z])", r"\1 \2", spaced)
+    spaced = re.sub(r"([A-Za-z])(\d)", r"\1 \2", spaced)
+    spaced = re.sub(r"(\d)([A-Za-z])", r"\1 \2", spaced)
+    spaced = re.sub(r"\bSmart Grid\b", "SmartGrid", spaced)
+
+    words: list[str] = []
+    for idx, token in enumerate(spaced.split()):
+        low = token.lower()
+        if low in _EDIT_PARAM_WORD_MAP:
+            word = _EDIT_PARAM_WORD_MAP[low]
+        elif token.isupper() and len(token) <= 4:
+            word = token
+        else:
+            word = low
+        if idx == 0 and word and word[0].islower():
+            word = word[0].upper() + word[1:]
+        words.append(word)
+    return " ".join(words)
 
 
 def round_to_step(value: float, step: float) -> int | float:

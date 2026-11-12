@@ -58,10 +58,37 @@ When the ecoNET300 module does not answer, for example after a power cut or a ne
 
 Use **Device settings** to choose how Home Assistant groups entities:
 
-- **Split** - keep separate devices for boiler, mixers, lambda, ecoSTER, and other components.
+- **Split (default)** - keep the existing separate devices for boiler, mixers, lambda, ecoSTER, and other components.
 - **Single** - expose all entities under one merged ecoNET300 device.
+- **Heat pump components (opt-in)** (`components`) - separate supported physical devices from logical
+  heating groups on **ecoMAX360i controllers using `gm3_pomp` only**. Other controllers keep their existing layout.
 
-Changing this option does not change entity IDs.
+Split and Single retain their existing behaviour; component mode is never enabled automatically.
+Select **Heat pump components (opt-in)** in this menu and save to enable it.
+
+### Heat pump component layout
+
+The existing ecoNET300 device remains the gateway. A separate PLUM controller owns controller diagnostics
+and unclassified controls; outdoor-unit telemetry and measured room thermostats get their own physical
+device groups when supported. Heating circuits, the DHW cylinder and the buffer are logical groups under
+the controller, not additional independently identified controllers.
+
+On Home Assistant 2026.9 or newer, **heating circuits only** use the child-device API when available. On older
+supported versions circuits are ordinary service-type devices linked to the controller. **DHW and buffer always
+remain ordinary service-type devices**, reusing their existing identifiers so switching back to Split is reversible.
+No minimum Home Assistant version increase is required. The layout does not establish an outdoor-unit brand/model
+or a thermostat serial number.
+See [component ownership and capability gates](ENTITIES.md#heat-pump-component-ownership) for what is grouped
+and the evidence required before creating each group.
+
+**Before changing mode, review device-targeted automations and areas.** Entity IDs, unique IDs, history and
+user overrides are preserved, but device membership and hierarchy change; generated friendly names may change.
+Keeping the original gateway device does not preserve its former entity membership. The same review is needed
+when changing back to Single or Split, including with the older-Home-Assistant fallback. Automations are not
+rewritten automatically. Existing device names and areas are retained; newly created ordinary devices initially
+copy the gateway area once and may need reassignment. Native circuit children follow their parent hierarchy;
+DHW and buffer do not gain child-device target or area inheritance.
+See [migration safeguards](MIGRATION.md#heat-pump-components-opt-in) before opting in.
 
 ## Custom Entities
 

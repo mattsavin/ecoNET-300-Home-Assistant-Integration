@@ -46,6 +46,7 @@ from .const import (
     SERVICE_FUEL_SENSOR,
     SERVICE_GET_SCHEDULE,
 )
+from .device_grouping import async_setup_component_devices
 from .entity import (
     HA_SUPPORTS_VIA_DEVICE_ID,
     _main_device_info,
@@ -129,6 +130,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             config_entry_id=entry.entry_id, **_main_device_info(api)
         )
         coordinator.controller_device_id = controller_device.id
+        await async_setup_component_devices(hass, entry, coordinator, api)
 
         await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 

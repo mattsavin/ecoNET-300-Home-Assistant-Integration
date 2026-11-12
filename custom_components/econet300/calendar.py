@@ -24,6 +24,7 @@ from .common_functions import (
     merge_active_slot_ranges,
 )
 from .const import DOMAIN, SERVICE_API, SERVICE_COORDINATOR
+from .device_grouping import component_device_info
 from .entity import EconetEntity, get_device_info_for_component
 
 _LOGGER = logging.getLogger(__name__)
@@ -79,13 +80,19 @@ class EconetScheduleCalendar(EconetEntity, CalendarEntity):
 
     @property
     def device_info(self):
-        """Return device info, grouping mixer/HUW schedules with their device."""
+        """Group schedules with their circuit or cylinder in the selected layout."""
+        grouped = component_device_info(
+            self.coordinator, self.api, getattr(self, "_api_key", "")
+        )
+        if grouped is not None:
+            return grouped
         if self._component:
             return get_device_info_for_component(
                 self._component,
                 self.api,
                 single_device=self.coordinator.single_device_tree,
                 via_device_id=self.coordinator.controller_device_id,
+                coordinator=self.coordinator,
             )
         return super().device_info
 

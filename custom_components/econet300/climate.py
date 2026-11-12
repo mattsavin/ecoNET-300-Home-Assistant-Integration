@@ -24,6 +24,7 @@ from .common import EconetDataCoordinator
 from .common_functions import is_ecomax360i_controller, round_to_step
 from .const import DOMAIN, SERVICE_API, SERVICE_COORDINATOR, _numeric_or_none
 from .const.processors import TEMP_NOT_CONNECTED_VALUE
+from .device_grouping import component_device_info
 from .entity import _main_device_info
 
 CIRCUIT1_WORK_STATE_PARAM = "236"
@@ -113,6 +114,14 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
         self._api = api
         self._attr_unique_id = f"{api.uid}-circuit1"
         self._attr_device_info = _main_device_info(api)
+
+    @property
+    def device_info(self) -> Any:
+        """Group circuit controls separately from the physical room sensor."""
+        return (
+            component_device_info(self.coordinator, self._api, "Circuit1WorkState")
+            or self._attr_device_info
+        )
 
     @property
     def _comfort_entry(self) -> dict[str, Any]:

@@ -36,6 +36,7 @@ from .const import (
     DEFAULT_POLL_EDIT_PARAMS,
     DEFAULT_POLL_REG_PARAMS,
     DEFAULT_POLL_SYS_PARAMS,
+    DEVICE_GROUPING_COMPONENTS,
     DEVICE_GROUPING_SINGLE,
     DOMAIN,
     EDIT_PARAMS_CONFIRM_DELAY_SEC,
@@ -235,6 +236,7 @@ class EconetDataCoordinator(DataUpdateCoordinator):
 
     # Set by async_setup_entry() once the controller device is registered.
     controller_device_id: str | None = None
+    component_device_ids: dict[str, str]
 
     def __init__(
         self,
@@ -257,6 +259,7 @@ class EconetDataCoordinator(DataUpdateCoordinator):
         self._device_grouping = options.get(
             CONF_DEVICE_GROUPING, DEFAULT_DEVICE_GROUPING
         )
+        self.component_device_ids = {}
 
         super().__init__(
             hass,
@@ -302,6 +305,11 @@ class EconetDataCoordinator(DataUpdateCoordinator):
     def single_device_tree(self) -> bool:
         """Return True when all entities should share one device."""
         return self._device_grouping == DEVICE_GROUPING_SINGLE
+
+    @property
+    def component_device_tree(self) -> bool:
+        """Return True only for the explicitly selected heat-pump component layout."""
+        return self._device_grouping == DEVICE_GROUPING_COMPONENTS
 
     def force_edit_params_refresh(self) -> None:
         """Force editParams refresh on the next coordinator update."""

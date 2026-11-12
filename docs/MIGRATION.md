@@ -8,7 +8,7 @@ This guide helps you upgrade between versions of the ecoNET-300 Home Assistant I
 
 | From Version | To Version    | Migration Required | Notes                                      |
 | ------------ | ------------- | ------------------ | ------------------------------------------ |
-| v1.3.6       | next release  | No (cleanup only)  | ecoMAX360i 0.1 °C setpoints (#273)         |
+| v1.3.6       | next release  | If opting in       | Component grouping; 0.1 °C setpoint cleanup |
 | v1.3.5       | v1.3.6        | No                 | Login (#267), log (#255), energy (#237)    |
 | v1.3.4       | v1.3.5        | No                 | Fixes `via_device` log warning (#264)      |
 | v1.3.3       | v1.3.4        | No (cleanup only)  | Delete empty *ecoSTER N* devices (#256)    |
@@ -18,6 +18,50 @@ This guide helps you upgrade between versions of the ecoNET-300 Home Assistant I
 | v1.1.15      | v1.2.x     | No                 | Auto-discovery of new entities            |
 | v1.1.x       | v1.1.15    | No                 | Direct upgrade                            |
 | v0.3.3       | v1.x       | Recommended        | Re-add integration for full features      |
+
+---
+
+## Heat pump components (opt-in)
+
+Upgrading does not enable component grouping: **Split remains the default**, and an existing Single choice
+is preserved. Only ecoMAX360i controllers using `gm3_pomp` support the new **Heat pump components (opt-in)**
+choice. See [Device settings](CONFIGURATION.md#device-settings) to enable it and
+[component ownership](ENTITIES.md#heat-pump-component-ownership) for capability gates and limitations.
+
+### Before opting in or changing back
+
+1. Record the current device names, areas and any automations/scripts that target devices or areas.
+2. Change the grouping under **Configure → Device settings** and save. Removing and re-adding the integration
+   is not required.
+3. Review **device-targeted automations**, scripts and area-based actions after the change. The gateway's
+   registry ID is retained, but its entity membership is not: entities move to physical-device groups and
+   logical circuit/vessel groups. Keeping the root device does not keep device targets equivalent. The fallback
+   on older Home Assistant versions also moves entities between devices; it is not exempt from this review.
+4. Review device areas. Existing user-assigned device names and areas are preserved. Newly created ordinary
+   devices, including the older-version fallback, copy the previous gateway area once; assign the outdoor unit,
+   thermostats or controller to more appropriate areas if needed. Native circuit children follow the controller's
+   hierarchy. DHW and buffer remain ordinary service groups; they do not gain child-device target or area inheritance.
+5. If returning to **Single**, the existing entities reattach to the original gateway device. Review device-targeted
+   automations and areas again when returning to Single or Split; reversing the option is not an automation repair.
+
+### What is preserved and what is not
+
+- Entity domains, platforms and unique IDs are unchanged. Existing entity IDs, history and user overrides
+  are preserved; automatically generated friendly names may change to reflect the new device grouping.
+- The root and existing component device entries are not deleted. Devices already discovered are retained
+  across transient disconnections. Returning to Single leaves unused component entries rather than deleting them.
+- Automations are **not rewritten automatically**. Entity-targeted references retain their entity IDs, but
+  device- or area-targeted references must be reviewed in both directions.
+- The DHW and buffer groups reuse `<uid>-huw` and `<uid>-buffer` as ordinary service-type devices on all
+  supported versions. They are not converted to child devices: that irreversible conversion would prevent
+  legacy Split from registering the same identifiers as ordinary devices. Other component identifiers are
+  based on the gateway UID, not independent serial numbers or evidence of an outdoor-unit brand/model.
+- On Home Assistant 2026.9+, **heating circuits only** use the child-device API when available. Their new
+  `<uid>-circuit-N` entries can safely remain unused when changing mode. On older supported versions circuits
+  are service-type devices linked to the controller. Neither circuits nor vessels are given invented
+  manufacturer/model/firmware. The minimum supported Home Assistant version is unchanged.
+- Component mode changes ownership, not control capabilities: it adds no humidity readings or immersion-heater
+  switch and does not interpret undocumented heating-mode fields. Unclassified controls stay on the controller.
 
 ---
 
@@ -411,7 +455,9 @@ Use this checklist when upgrading:
 
 ### Q: Will I lose my automations?
 
-**A:** No. Entity IDs remain stable, so existing automations continue to work.
+**A:** Entity-targeted references retain their entity IDs. Device- and area-targeted automations need review
+when opting into component grouping or changing back; keeping the gateway device does not preserve its
+entity membership. Automations are not rewritten automatically.
 
 ### Q: Do I need to reconfigure the integration?
 

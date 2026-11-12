@@ -23,6 +23,7 @@ from .common_functions import (
     camel_to_snake,
     ecoster_exists,
     find_heater_mode_param,
+    friendly_edit_param_name,
     get_duplicate_display_name,
     get_duplicate_entity_key,
     get_heater_mode_options,
@@ -43,6 +44,7 @@ from .const import (
     SERVICE_API,
     SERVICE_COORDINATOR,
 )
+from .device_grouping import edit_param_device_info
 from .entity import EconetEntity, get_device_info_for_component
 
 _LOGGER = logging.getLogger(__name__)
@@ -418,6 +420,7 @@ class EconetDynamicSelect(EconetEntity, SelectEntity):
             self.api,
             single_device=self.coordinator.single_device_tree,
             via_device_id=self.coordinator.controller_device_id,
+            coordinator=self.coordinator,
         )
 
     @property
@@ -877,7 +880,8 @@ class EditParamSelect(CoordinatorEntity[EconetDataCoordinator], SelectEntity):
 
         info = (coordinator.data or {}).get("editParamCatalog", {}).get(self._pid, {})
         pname = info.get("name", f"Param {self._pid}")
-        self._attr_name = f"{pname} ({self._pid})"
+        display_name = friendly_edit_param_name(pname)
+        self._attr_name = f"{display_name} ({self._pid})"
 
         self._attr_device_info = _device_info(api)
 
@@ -931,8 +935,11 @@ class EditParamSelect(CoordinatorEntity[EconetDataCoordinator], SelectEntity):
 
     @property
     def device_info(self) -> DeviceInfo | None:
-        """Return the main ecoNET300 device info for this entity."""
-        return self._attr_device_info
+        """Return component ownership while preserving the editParams unique ID."""
+        return (
+            edit_param_device_info(self.coordinator, self._api, self._pid)
+            or self._attr_device_info
+        )
 
 
 def _create_edit_param_selects(

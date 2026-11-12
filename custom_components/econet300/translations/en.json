@@ -118,12 +118,12 @@
       },
       "device_settings": {
         "title": "Device settings",
-        "description": "Choose how entities are grouped into devices. Split keeps separate devices per component (boiler, mixers, lambda, ecoSTER, etc.). Single merges everything into one device.",
+        "description": "Choose how entities are grouped into devices. Split (default) keeps the existing component groups (boiler, mixers, lambda, ecoSTER, etc.). Single merges everything into one device. Heat pump components (opt-in) separates supported physical devices and logical heating groups on ecoMAX360i controllers using gm3_pomp only. Entity IDs are preserved, but review device-targeted automations and areas when opting in or changing back; automations are not rewritten automatically.",
         "data": {
           "device_grouping": "Device grouping"
         },
         "data_description": {
-          "device_grouping": "Split (separate devices) or Single (one merged device). Entity IDs are unchanged either way."
+          "device_grouping": "Split, Single or Heat pump components (opt-in). Component mode changes device membership and hierarchy, even though the original gateway device is retained. Review device-targeted automations and areas in both directions; generated friendly names may change."
         }
       },
       "polling_settings": {
@@ -187,6 +187,26 @@
     },
     "abort": {
       "no_unmapped_params": "No unmapped parameters available for the selected endpoint."
+    }
+  },
+  "device": {
+    "hp_controller": {
+      "name": "Controller"
+    },
+    "hp_outdoor": {
+      "name": "Heat pump outdoor unit"
+    },
+    "hp_thermostat": {
+      "name": "Room thermostat {number}"
+    },
+    "hp_circuit": {
+      "name": "Heating circuit {number}"
+    },
+    "hp_dhw": {
+      "name": "DHW cylinder"
+    },
+    "hp_buffer": {
+      "name": "Buffer"
     }
   },
   "entity": {

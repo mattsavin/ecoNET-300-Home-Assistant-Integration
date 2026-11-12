@@ -125,6 +125,8 @@ Enter your local device **Host** (IP/domain) and **local** credentials — not y
 
 After setup, open **Settings → Devices & Services → ecoNET300 → Configure** to adjust connection settings, polling intervals, device grouping, custom entities, and to generate diagnostics reports.
 
+**Heat pump components (opt-in)** adds physical-device and logical heating groups for ecoMAX360i controllers using `gm3_pomp`; **Split remains the default**, and Single is unchanged. Entity IDs and history are preserved, but device-targeted automations and areas need review when opting in or changing back. See [Device settings](docs/CONFIGURATION.md#device-settings) and [component-mode migration](docs/MIGRATION.md#heat-pump-components-opt-in).
+
 > Tip: For better graph granularity, lower the **regParams polling interval** in **Polling settings** (default 15s, minimum 5s).
 
 **📖 [Complete Configuration Guide](docs/CONFIGURATION.md)** — manual setup steps, polling, device grouping, and custom entities.

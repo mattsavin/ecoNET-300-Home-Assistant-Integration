@@ -323,6 +323,71 @@ class TestCreateEditParamEntities:
         assert numbers["238"].name == "Circuit 1 day temp (238)"
         assert numbers["239"].name == "Circuit 1 night temp (239)"
 
+    def test_edit_param_friendly_names_humanize_raw_keys(self):
+        """Verify raw editParams names are converted to readable labels."""
+        from custom_components.econet300.common_functions import (
+            friendly_edit_param_name,
+        )
+
+        assert friendly_edit_param_name("Circuit1ComfortTemp") == "Circuit 1 day temp"
+        assert friendly_edit_param_name("Circuit1EcoTemp") == "Circuit 1 night temp"
+        assert friendly_edit_param_name("Circuit1DownHist") == "Circuit 1 hysteresis"
+        assert (
+            friendly_edit_param_name("Circuit1CurveRadiator")
+            == "Circuit 1 heating curve"
+        )
+        assert friendly_edit_param_name("Circuit1Curveshift") == "Circuit 1 curve shift"
+        assert friendly_edit_param_name("HDWTSetPoint") == "DHW target temperature"
+        assert friendly_edit_param_name("HDWusermode") == "DHW mode"
+        assert friendly_edit_param_name("BuforsetPoint") == "Buffer target temperature"
+        assert (
+            friendly_edit_param_name("Korekta_temperatury") == "Temperature correction"
+        )
+        assert friendly_edit_param_name("kasowanie_alarmow") == "Clear alarms"
+        assert friendly_edit_param_name("FactorySetup") == "Factory setup"
+        assert friendly_edit_param_name("currentSchemat") == "Hydraulic scheme"
+        assert (
+            friendly_edit_param_name("EPowerWorldRegisters74")
+            == "Heat pump register 74"
+        )
+        assert (
+            friendly_edit_param_name("SmartGridIncreaseForRoomHeatingCircuit1")
+            == "Smart Grid increase for room heating circuit 1"
+        )
+        assert (
+            friendly_edit_param_name("Mixer2valveopeningtime")
+            == "Mixer 2 valve opening time"
+        )
+
+    def test_edit_param_switch_and_select_use_friendly_names(self):
+        """EditParamSwitch and EditParamSelect use friendly names, preserving unique_id."""
+        from custom_components.econet300.select import EditParamSelect
+        from custom_components.econet300.switch import EditParamSwitch
+
+        catalog = {
+            "119": {
+                "name": "HDWusermode",
+                "value": 2,
+                "kind": "select",
+                "options": ["0", "1", "2"],
+            },
+            "10041": {
+                "name": "kasowanie_alarmow",
+                "value": 0,
+                "kind": "switch",
+            },
+        }
+        coordinator = _coordinator(catalog)
+        api = _make_api()
+
+        select = EditParamSelect(coordinator, api, "119")
+        switch = EditParamSwitch(coordinator, api, "10041")
+
+        assert select.name == "DHW mode (119)"
+        assert select.unique_id == f"{api.uid}-edit_119"
+        assert switch.name == "Clear alarms (10041)"
+        assert switch.unique_id == f"{api.uid}-edit_10041"
+
     def test_select_current_option_for_value_in_options(self):
         catalog = _catalog()
         select = _create_edit_param_selects(_coordinator(catalog), _make_api())[0]

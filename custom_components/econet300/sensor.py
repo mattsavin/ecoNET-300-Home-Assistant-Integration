@@ -330,6 +330,7 @@ class EconetSensor(EconetEntity, SensorEntity):
                 self.api,
                 single_device=self.coordinator.single_device_tree,
                 via_device_id=self.coordinator.controller_device_id,
+                coordinator=self.coordinator,
             )
         # Fall back to parent class device_info (main boiler device)
         return super().device_info
@@ -1326,6 +1327,7 @@ class CustomSensor(EconetEntity, SensorEntity):
                 self.api,
                 single_device=self.coordinator.single_device_tree,
                 via_device_id=self.coordinator.controller_device_id,
+                coordinator=self.coordinator,
             )
         return super().device_info
 

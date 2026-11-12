@@ -30,6 +30,7 @@ from .const import (
     EDIT_PARAMS_DATA_SENSOR_MAP,
     INFORMATION_PARAMS_SENSOR_MAP,
 )
+from .device_grouping import component_device_info
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -119,8 +120,15 @@ class EconetEntity(CoordinatorEntity[EconetDataCoordinator]):
 
     @property
     def device_info(self) -> DeviceInfo | None:
-        """Return device info for controller entities (split or single)."""
-        if self.coordinator.single_device_tree:
+        """Return device info for the selected layout without changing entity identity."""
+        key = getattr(getattr(self, "entity_description", None), "key", "")
+        grouped = component_device_info(self.coordinator, self.api, key)
+        if grouped is not None:
+            return grouped
+        if (
+            self.coordinator.single_device_tree
+            or getattr(self.coordinator, "component_device_tree", False) is True
+        ):
             return _main_device_info(self.api)
         return _create_base_device_info(
             api=self.api,
@@ -424,6 +432,7 @@ def get_device_info_for_component(
     mixer_idx: int | None = None,
     single_device: bool = False,
     via_device_id: str | None = None,
+    coordinator: EconetDataCoordinator | None = None,
 ) -> DeviceInfo:
     """Return DeviceInfo for a specific component.
 
@@ -434,6 +443,7 @@ def get_device_info_for_component(
         single_device: When True, merge all entities under one main device.
         via_device_id: Device registry id of the controller device that
             component devices are connected through.
+        coordinator: Optional coordinator used to resolve component grouping.
 
     Returns:
         DeviceInfo for the specified component
@@ -441,6 +451,16 @@ def get_device_info_for_component(
     """
     if single_device:
         return _main_device_info(api)
+    if coordinator is not None:
+        key = {
+            COMPONENT_HUW: "water_heater",
+            COMPONENT_BUFFER: "BufferTargetTemp",
+            COMPONENT_BOILER: "controllerID",
+        }.get(component)
+        if key is not None:
+            grouped = component_device_info(coordinator, api, key)
+            if grouped is not None:
+                return grouped
 
     # Handle mixer special case
     if component.startswith("mixer_"):

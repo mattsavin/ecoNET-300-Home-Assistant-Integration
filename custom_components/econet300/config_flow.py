@@ -37,6 +37,7 @@ from .const import (
     DEFAULT_POLL_EDIT_PARAMS,
     DEFAULT_POLL_REG_PARAMS,
     DEFAULT_POLL_SYS_PARAMS,
+    DEVICE_GROUPING_COMPONENTS,
     DEVICE_GROUPING_SINGLE,
     DEVICE_GROUPING_SPLIT,
     DOMAIN,
@@ -342,6 +343,7 @@ class EconetOptionsFlowHandler(OptionsFlow):
                     {
                         DEVICE_GROUPING_SPLIT: "Split (separate devices)",
                         DEVICE_GROUPING_SINGLE: "Single (one merged device)",
+                        DEVICE_GROUPING_COMPONENTS: "Heat pump components (opt-in)",
                     }
                 ),
             }

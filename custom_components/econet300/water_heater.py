@@ -20,6 +20,7 @@ from .common import EconetDataCoordinator
 from .common_functions import is_ecomax360i_controller
 from .const import DOMAIN, SERVICE_API, SERVICE_COORDINATOR, _numeric_or_none
 from .const.processors import TEMP_NOT_CONNECTED_VALUE
+from .device_grouping import component_device_info
 from .entity import _main_device_info
 
 DHW_SETPOINT_PARAM = "103"
@@ -99,6 +100,14 @@ class EconetWaterHeater(CoordinatorEntity[EconetDataCoordinator], WaterHeaterEnt
         self._initial_max = self._setpoint.get("maxv", 65)
         self._attr_unique_id = f"{api.uid}-dhw"
         self._attr_device_info = _main_device_info(api)
+
+    @property
+    def device_info(self) -> Any:
+        """Group the water-heater entity with its cylinder readings and boost."""
+        return (
+            component_device_info(self.coordinator, self._api, "TempCWU")
+            or self._attr_device_info
+        )
 
     @property
     def native_current_temperature(self) -> float | None:
@@ -230,6 +239,14 @@ class EconetDhwBoostButton(CoordinatorEntity[EconetDataCoordinator], ButtonEntit
         self._api = api
         self._attr_unique_id = f"{api.uid}-dhw-boost"
         self._attr_device_info = _main_device_info(api)
+
+    @property
+    def device_info(self) -> Any:
+        """Use the same cylinder group as the water-heater entity."""
+        return (
+            component_device_info(self.coordinator, self._api, "HDWStartOneLoading")
+            or self._attr_device_info
+        )
 
     @property
     def available(self) -> bool:

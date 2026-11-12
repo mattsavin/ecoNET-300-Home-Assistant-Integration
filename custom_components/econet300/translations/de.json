@@ -118,12 +118,12 @@
       },
       "device_settings": {
         "title": "Geräteeinstellungen",
-        "description": "Wählen Sie, wie Entitäten zu Geräten gruppiert werden. „Getrennt“ behält separate Geräte pro Komponente (Heizkessel, Mischer, Lambda, ecoSTER usw.) bei. „Einzeln“ fasst alles zu einem Gerät zusammen.",
+        "description": "Wählen Sie, wie Entitäten zu Geräten gruppiert werden. Split (Standard) behält die bisherigen Komponentengruppen (Heizkessel, Mischer, Lambda, ecoSTER usw.) bei. Single fasst alles zu einem Gerät zusammen. Heat pump components (opt-in) trennt auf Wunsch unterstützte physische Geräte und logische Heizungsgruppen, ausschließlich bei ecoMAX360i-Steuerungen mit gm3_pomp. Entitäts-IDs bleiben erhalten, aber prüfen Sie beim Aktivieren und beim Zurückwechseln gerätebezogene Automatisierungen und Bereichszuordnungen; Automatisierungen werden nicht automatisch umgeschrieben.",
         "data": {
           "device_grouping": "Gerätegruppierung"
         },
         "data_description": {
-          "device_grouping": "Getrennt (separate Geräte) oder Einzeln (ein zusammengeführtes Gerät). Die Entitäts-IDs bleiben in beiden Fällen unverändert."
+          "device_grouping": "Split, Single oder Heat pump components (opt-in). Der Komponentenmodus ändert die Zuordnung der Entitäten und die Gerätehierarchie, obwohl das ursprüngliche Gateway-Gerät erhalten bleibt. Prüfen Sie in beiden Richtungen gerätebezogene Automatisierungen und Bereichszuordnungen; automatisch erzeugte Anzeigenamen können sich ändern."
         }
       },
       "polling_settings": {
@@ -187,6 +187,26 @@
     },
     "abort": {
       "no_unmapped_params": "Keine nicht zugeordneten Parameter für den ausgewählten Endpunkt verfügbar."
+    }
+  },
+  "device": {
+    "hp_controller": {
+      "name": "Steuerung"
+    },
+    "hp_outdoor": {
+      "name": "Wärmepumpen-Außeneinheit"
+    },
+    "hp_thermostat": {
+      "name": "Raumthermostat {number}"
+    },
+    "hp_circuit": {
+      "name": "Heizkreis {number}"
+    },
+    "hp_dhw": {
+      "name": "Warmwasserspeicher"
+    },
+    "hp_buffer": {
+      "name": "Pufferspeicher"
     }
   },
   "entity": {
