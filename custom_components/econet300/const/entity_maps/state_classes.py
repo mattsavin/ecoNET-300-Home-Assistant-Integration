@@ -65,7 +65,7 @@ STATE_CLASS_MAP: dict[str, _SensorStateClass | None] = {
     "AxenWorkState": None,
     "ssaState": None,
     # Phoenix / extended heat-pump status sensors (not measurements)
-    "Circuit1thermostat": None,
+    "Circuit1thermostat": _SensorStateClass.MEASUREMENT,
     "HPStatusBuffHeatStat": None,
     "HPStatusCircPStat0": None,
     "HPStatusCircPStat1": None,

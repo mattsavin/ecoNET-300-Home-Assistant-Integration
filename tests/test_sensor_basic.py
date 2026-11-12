@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from homeassistant.const import UnitOfEnergy
+from homeassistant.const import UnitOfEnergy, UnitOfTemperature
 
 from custom_components.econet300.binary_sensor import create_ecoster_binary_sensors
 from custom_components.econet300.common_functions import (
@@ -760,6 +760,19 @@ class TestEditParamsSensorMaps:
         assert process(999.0) is None
         assert process(18.4) == 18.4
         assert process(-12) == -12
+
+    def test_circuit1_thermostat_sensor_metadata_and_disconnected(self) -> None:
+        """Circuit1thermostat on ecoMAX360i is room temperature (0.1°C precision)."""
+        description = create_sensor_entity_description("Circuit1thermostat")
+        assert description.native_unit_of_measurement == UnitOfTemperature.CELSIUS
+        assert description.device_class == SensorDeviceClass.TEMPERATURE
+        assert description.state_class == SensorStateClass.MEASUREMENT
+        assert description.suggested_display_precision == 1
+        assert description.process_val(999) is None
+        assert description.process_val(999.0) is None
+        assert description.process_val(20.77) == 20.77
+        assert description.process_val("20.77") == 20.77
+        assert description.process_val(None) is None
 
     def test_edit_params_keys_in_ecomax360i_sensors(self) -> None:
         """All editParams.data sensor keys should be in ECOMAX360I_SENSORS."""

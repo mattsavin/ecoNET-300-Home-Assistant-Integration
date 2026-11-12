@@ -120,9 +120,7 @@ def test_edit_params_structure():
     fixtures_with_edit_params = ["ecoMAX360-cf8", "ecoMAX360i"]
     for fixture_name in fixtures_with_edit_params:
         edit_params = load_fixture(fixture_name, "editParams.json")
-        assert edit_params is not None, (
-            f"editParams.json missing for {fixture_name}"
-        )
+        assert edit_params is not None, f"editParams.json missing for {fixture_name}"
         assert isinstance(edit_params, dict)
 
         assert "data" in edit_params, (

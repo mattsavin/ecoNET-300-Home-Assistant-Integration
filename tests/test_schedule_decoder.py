@@ -218,9 +218,7 @@ class TestScheduleWithFixture:
     def model_sys_params(self, request) -> tuple[str, dict]:
         """Load sysParams fixture for each model with schedule data."""
         model = request.param
-        fixture_path = (
-            Path(__file__).parent / "fixtures" / model / "sysParams.json"
-        )
+        fixture_path = Path(__file__).parent / "fixtures" / model / "sysParams.json"
         with fixture_path.open() as f:
             return model, json.load(f)
 
@@ -242,9 +240,7 @@ class TestScheduleWithFixture:
                     f"{model}/{key} day {day_idx} should have 6 bytes"
                 )
             if len(data) > 7:
-                assert len(data[7]) == 4, (
-                    f"{model}/{key} metadata should have 4 values"
-                )
+                assert len(data[7]) == 4, f"{model}/{key} metadata should have 4 values"
 
     def test_decode_all_fixture_schedules(self, model_sys_params):
         """Decode every schedule in the fixture without errors."""

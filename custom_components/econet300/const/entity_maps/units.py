@@ -100,8 +100,8 @@ ENTITY_UNIT_MAP = {
     "TempCWU": _UnitOfTemperature.CELSIUS,
     "TempBuforDown": _UnitOfTemperature.CELSIUS,
     "heatingUpperTemp": _UnitOfTemperature.CELSIUS,
-    # Circuit1thermostat is a thermostat state (no "Temp" suffix), not a temperature.
-    "Circuit1thermostat": None,
+    # Circuit1thermostat is room temperature on ecoMAX360i (Grant smart thermostat).
+    "Circuit1thermostat": _UnitOfTemperature.CELSIUS,
     "flapValveStates": None,
     "HeatDemanded": None,
     "WaterPumpRunning": None,
