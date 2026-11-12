@@ -4,6 +4,7 @@ import math
 from typing import Any
 
 from homeassistant.components.climate import (
+    ATTR_HVAC_MODE,
     PRESET_COMFORT,
     PRESET_ECO,
     ClimateEntity,
@@ -36,6 +37,17 @@ WORK_STATE_OFF = 0
 WORK_STATE_DAY = 1
 WORK_STATE_NIGHT = 2
 WORK_STATE_SCHEDULE = 3
+
+
+def _work_state_for_hvac_mode(hvac_mode: HVACMode) -> int:
+    """Translate an HVAC mode to a supported circuit work state."""
+    if hvac_mode == HVACMode.OFF:
+        return WORK_STATE_OFF
+    if hvac_mode == HVACMode.AUTO:
+        return WORK_STATE_SCHEDULE
+    if hvac_mode == HVACMode.HEAT:
+        return WORK_STATE_DAY
+    raise HomeAssistantError(f"Unsupported HVAC mode: {hvac_mode}")
 
 
 def _finite_number(value: Any) -> float | None:
@@ -89,7 +101,10 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.AUTO, HVACMode.OFF]
     _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO]
     _attr_supported_features = (
-        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
     )
 
     def __init__(self, coordinator: EconetDataCoordinator, api: Econet300Api) -> None:
@@ -182,20 +197,12 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
 
     @property
     def _is_heating_active(self) -> bool:
-        """Return True if heat is actively demanded or being provided to Circuit 1."""
+        """Return True when telemetry indicates heat is being supplied to Circuit 1."""
         if self.hvac_mode == HVACMode.OFF:
             return False
 
         data = self.coordinator.data or {}
         reg = data.get("regParams") or {}
-
-        # 1. Thermostat demand signal (param 26: 0 = "heat", 1 = "off")
-        info_26 = (data.get("informationParams") or {}).get("26")
-        if isinstance(info_26, list) and len(info_26) > 1:
-            inner = info_26[1]
-            if isinstance(inner, list) and len(inner) > 0 and len(inner[0]) > 0:
-                if str(inner[0][0]) == "0":
-                    return True
 
         # Check 3-way diverter valve (0 = central heating, 3 = domestic hot water)
         flap = reg.get("flapValveStates")
@@ -203,17 +210,17 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
             # Valve is actively routed to DHW cylinder recharge
             return False
 
-        # 2. Positive thermal power delivered to heating circuit (> 0 kW)
+        # Positive thermal power delivered to the heating circuit (> 0 kW).
         thermal_power = _info_param_number(data, "212")
         if thermal_power is not None and thermal_power > 0.05:
             return True
 
-        # 3. Heat pump compressor running on central heating
+        # Heat pump compressor running on central heating.
         comp = _finite_number(reg.get("AxenCompressorFreq"))
         if comp is not None and comp > 0:
             return True
 
-        # 4. Circulation pump running while circulating water delivers heat
+        # Circulation pump running while circulating water delivers heat
         # (e.g. post-DHW recharge residual heat dissipation or buffer circulation)
         flow_rate = _info_param_number(data, "231")
         pump_running = (flow_rate is not None and flow_rate > 0) or (
@@ -290,19 +297,20 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
             and _climate_platform_supported(data)
         )
 
+    async def async_turn_on(self) -> None:
+        """Resume the controller's heating schedule."""
+        await self.async_set_hvac_mode(HVACMode.AUTO)
+
+    async def async_turn_off(self) -> None:
+        """Stop circuit heating."""
+        await self.async_set_hvac_mode(HVACMode.OFF)
+
     async def async_set_hvac_mode(self, hvac_mode: HVACMode) -> None:
         """Set HVAC mode by writing Circuit1WorkState."""
         if not self.available:
             raise HomeAssistantError("Climate entity is unavailable")
 
-        if hvac_mode == HVACMode.OFF:
-            target_state = WORK_STATE_OFF
-        elif hvac_mode == HVACMode.AUTO:
-            target_state = WORK_STATE_SCHEDULE
-        elif hvac_mode == HVACMode.HEAT:
-            target_state = WORK_STATE_DAY
-        else:
-            raise HomeAssistantError(f"Unsupported HVAC mode: {hvac_mode}")
+        target_state = _work_state_for_hvac_mode(hvac_mode)
 
         if not await self._api.set_param(CIRCUIT1_WORK_STATE_PARAM, target_state):
             raise HomeAssistantError("Controller rejected the circuit work state write")
@@ -329,9 +337,14 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
         await self.coordinator.async_request_refresh()
 
     async def async_set_temperature(self, **kwargs: Any) -> None:
-        """Set target temperature for the active mode."""
+        """Set the target temperature and optionally change the operating mode."""
         if not self.available:
             raise HomeAssistantError("Climate entity is unavailable")
+
+        hvac_mode = kwargs.get(ATTR_HVAC_MODE)
+        target_state = self._work_state
+        if hvac_mode is not None:
+            target_state = _work_state_for_hvac_mode(hvac_mode)
 
         raw_temp = kwargs.get(ATTR_TEMPERATURE)
         temp = _finite_number(raw_temp)
@@ -343,10 +356,10 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
         step = self.target_temperature_step or 0.1
         send_val = round_to_step(temp, step)
 
-        # Write to Day temp (param 238) unless Night mode is explicitly active (param 239)
+        # Schedule and Off edit the Day target; only explicit Night uses Eco.
         target_param = (
             CIRCUIT1_ECO_TEMP_PARAM
-            if self._work_state == WORK_STATE_NIGHT
+            if target_state == WORK_STATE_NIGHT
             else CIRCUIT1_COMFORT_TEMP_PARAM
         )
 
@@ -355,8 +368,18 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
                 f"Controller rejected temperature write to param {target_param}"
             )
 
-        self.coordinator.force_edit_params_refresh()
-        await self.coordinator.async_request_refresh()
+        try:
+            if hvac_mode is not None:
+                if not await self._api.set_param(
+                    CIRCUIT1_WORK_STATE_PARAM, target_state
+                ):
+                    raise HomeAssistantError(
+                        "Controller rejected the circuit work state write"
+                    )
+        finally:
+            # The target changed even if the subsequent mode write failed.
+            self.coordinator.force_edit_params_refresh()
+            await self.coordinator.async_request_refresh()
 
 
 async def async_setup_entry(

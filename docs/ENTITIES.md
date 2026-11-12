@@ -12,6 +12,40 @@ Complete reference for all entities provided by the ecoNET300 Home Assistant Int
 | Switches       | 1     | Boiler ON/OFF control             |
 | Select         | 1     | Heater mode (Winter/Summer/Auto)  |
 | Number         | 15+   | Temperature setpoints             |
+| Climate        | 1     | ecoMAX360i Circuit 1 heating       |
+
+---
+
+## Climate
+
+Supported ecoMAX360i controllers using the `gm3_pomp` protocol expose a **Circuit 1** climate entity
+when the circuit mode and Day temperature parameters are editable. It combines the room temperature,
+Day/Night targets and operating modes; existing number and select entities remain available.
+
+| HVAC mode | Controller behaviour |
+| --------- | -------------------- |
+| Heat      | Continuous Day mode  |
+| Auto      | Controller schedule  |
+| Off       | Circuit heating off  |
+
+The Comfort preset selects Day mode; Eco selects Night mode. Standard `climate.turn_on` resumes
+**Auto (schedule)**, and `climate.turn_off` stops circuit heating without changing the DHW mode.
+Toggle switches between Off and Auto.
+
+Temperature-only requests update the Night target in explicit Night mode, otherwise the Day target.
+A combined `climate.set_temperature` request honours its `hvac_mode` and writes the Day target before
+changing the operating mode. Inputs are validated before either write. If the target succeeds but
+changing the mode fails, the action reports an error and refreshes the controller data; the target
+change is not rolled back.
+
+**Schedule limitation:** in Auto, the climate entity displays and edits the Day target, which is not
+necessarily the target currently selected by the schedule. Day and Night targets are also available
+as separate attributes and number entities. Targets use 0.1 °C steps. A disconnected room sensor
+(`999`) is shown as unknown.
+
+The Heating action is inferred from thermal power, compressor activity or warm-water circulation,
+excluding DHW routing. Thermostat demand alone does not count as heating; it remains available in the
+`heat_demanded` attribute.
 
 ---
 

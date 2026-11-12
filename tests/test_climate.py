@@ -111,7 +111,10 @@ async def test_setup_entry_creates_entity_for_ecomax360i():
     assert climate.hvac_mode == HVACMode.AUTO
     assert climate.preset_mode is None
     assert climate.supported_features == (
-        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+        ClimateEntityFeature.TARGET_TEMPERATURE
+        | ClimateEntityFeature.PRESET_MODE
+        | ClimateEntityFeature.TURN_ON
+        | ClimateEntityFeature.TURN_OFF
     )
 
 
@@ -304,8 +307,8 @@ async def test_hvac_action_off_when_mode_is_off():
 
 
 @pytest.mark.asyncio
-async def test_hvac_action_heating_when_demand_active():
-    """hvac_action is HEATING when HeatDemanded signal is 0 (heat)."""
+async def test_hvac_action_idle_when_demand_has_no_heat_delivery():
+    """Demand alone is diagnostic and does not prove heat is being supplied."""
     from homeassistant.components.climate import HVACAction
     from custom_components.econet300.climate import EconetCircuitClimate
 
@@ -314,9 +317,9 @@ async def test_hvac_action_heating_when_demand_active():
     api = MagicMock(uid="test-controller")
     climate = EconetCircuitClimate(coordinator, api)
 
-    assert climate.hvac_action == HVACAction.HEATING
+    assert climate.hvac_action == HVACAction.IDLE
     assert climate.extra_state_attributes["heat_demanded"] is True
-    assert climate.extra_state_attributes["is_heating"] is True
+    assert climate.extra_state_attributes["is_heating"] is False
 
 
 @pytest.mark.asyncio
@@ -375,3 +378,168 @@ async def test_hvac_action_heating_during_post_dhw_circulation():
     assert climate.extra_state_attributes["flow_temperature"] == 42.5
     assert climate.extra_state_attributes["return_temperature"] == 35.0
     assert climate.extra_state_attributes["flow_rate_lmin"] == 15.2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("initial_state", "requested_mode", "expected_state"),
+    [
+        (0, HVACMode.HEAT, 1),
+        (2, HVACMode.HEAT, 1),
+        (1, HVACMode.OFF, 0),
+        (2, HVACMode.AUTO, 3),
+    ],
+)
+async def test_temperature_service_honours_requested_mode(
+    hass, initial_state, requested_mode, expected_state
+):
+    """Combined requests set the Day target before changing the operating mode."""
+    from homeassistant.components.climate import async_service_temperature_set
+    from homeassistant.core import ServiceCall
+
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=initial_state)
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    climate = EconetCircuitClimate(coordinator, api)
+    climate.hass = hass
+    service_call = ServiceCall(
+        hass,
+        "climate",
+        "set_temperature",
+        {"temperature": 22.5, "hvac_mode": requested_mode},
+    )
+
+    await async_service_temperature_set(climate, service_call)
+
+    assert [call.args for call in api.set_param.await_args_list] == [
+        ("238", 22.5),
+        ("236", expected_state),
+    ]
+    coordinator.force_edit_params_refresh.assert_called_once()
+    coordinator.async_request_refresh.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("service", "initial_state", "expected_state", "required_features"),
+    [
+        ("turn_on", 0, 3, [ClimateEntityFeature.TURN_ON]),
+        ("turn_off", 1, 0, [ClimateEntityFeature.TURN_OFF]),
+        ("turn_off", 2, 0, [ClimateEntityFeature.TURN_OFF]),
+        ("toggle", 0, 3, [ClimateEntityFeature.TURN_ON, ClimateEntityFeature.TURN_OFF]),
+        ("toggle", 3, 0, [ClimateEntityFeature.TURN_ON, ClimateEntityFeature.TURN_OFF]),
+    ],
+)
+async def test_on_off_services_resume_schedule_or_stop_circuit(
+    hass, service, initial_state, expected_state, required_features
+):
+    """Standard HA actions dispatch successfully with explicit schedule semantics."""
+    from homeassistant.core import ServiceCall
+    from homeassistant.helpers.service import entity_service_call
+
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=initial_state)
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    climate = EconetCircuitClimate(coordinator, api)
+    climate.hass = hass
+    climate.entity_id = "climate.test_circuit_1"
+    service_call = ServiceCall(
+        hass, "climate", service, {"entity_id": climate.entity_id}
+    )
+
+    await entity_service_call(
+        hass,
+        {climate.entity_id: climate},
+        f"async_{service}",
+        service_call,
+        required_features,
+    )
+
+    api.set_param.assert_awaited_once_with("236", expected_state)
+    coordinator.force_edit_params_refresh.assert_called_once()
+    coordinator.async_request_refresh.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_hvac_action_idle_during_dhw_recharge():
+    """DHW routing takes precedence over demand and heat pump activity."""
+    from homeassistant.components.climate import HVACAction
+
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=3)
+    coordinator.data["regParams"].update(
+        flapValveStates=3, AxenCompressorFreq=45, AxenUpperPump=1
+    )
+    coordinator.data["informationParams"] = {
+        "26": [False, [["0", 0, 1]]],
+        "212": [None, [["5.0", 7, 0]]],
+        "14": [True, [["45.0", 1, 0]]],
+        "15": [True, [["35.0", 1, 0]]],
+        "231": [True, [["15.0", 30, 0]]],
+    }
+    climate = EconetCircuitClimate(coordinator, MagicMock(uid="test-controller"))
+
+    assert climate.hvac_action == HVACAction.IDLE
+    assert climate.extra_state_attributes["heat_demanded"] is True
+    assert climate.extra_state_attributes["is_heating"] is False
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"temperature": 22.5, "hvac_mode": HVACMode.COOL},
+        {"temperature": 9.9, "hvac_mode": HVACMode.HEAT},
+        {"temperature": float("nan"), "hvac_mode": HVACMode.HEAT},
+    ],
+)
+async def test_combined_request_validates_all_inputs_before_writing(kwargs):
+    """Invalid temperature or mode must not partially change the controller."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=0)
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    climate = EconetCircuitClimate(coordinator, api)
+
+    with pytest.raises(HomeAssistantError):
+        await climate.async_set_temperature(**kwargs)
+
+    api.set_param.assert_not_awaited()
+    coordinator.force_edit_params_refresh.assert_not_called()
+    coordinator.async_request_refresh.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("write_results", "expected_writes", "refresh_count"),
+    [
+        ([False], [("238", 22.5)], 0),
+        ([True, False], [("238", 22.5), ("236", 1)], 1),
+        (
+            [True, HomeAssistantError("Connection lost")],
+            [("238", 22.5), ("236", 1)],
+            1,
+        ),
+    ],
+)
+async def test_combined_request_reports_failed_writes(
+    write_results, expected_writes, refresh_count
+):
+    """Do not enable heating after target failure; refresh after partial success."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=0)
+    api = MagicMock(
+        uid="test-controller", set_param=AsyncMock(side_effect=write_results)
+    )
+    climate = EconetCircuitClimate(coordinator, api)
+
+    with pytest.raises(HomeAssistantError):
+        await climate.async_set_temperature(temperature=22.5, hvac_mode=HVACMode.HEAT)
+
+    assert [call.args for call in api.set_param.await_args_list] == expected_writes
+    assert coordinator.force_edit_params_refresh.call_count == refresh_count
+    assert coordinator.async_request_refresh.await_count == refresh_count
