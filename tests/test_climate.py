@@ -102,6 +102,9 @@ async def test_setup_entry_creates_entity_for_ecomax360i():
     climate = entities[0]
 
     assert climate.unique_id == "test-controller-circuit1"
+    assert climate._attr_native_temperature_unit == UnitOfTemperature.CELSIUS
+    assert climate.native_current_temperature == 20.8
+    assert climate.native_target_temperature == 22.5
     assert climate.temperature_unit == UnitOfTemperature.CELSIUS
     assert climate.current_temperature == 20.8
     assert climate.target_temperature == 22.5
@@ -157,6 +160,7 @@ async def test_work_state_mapping(
 
     assert climate.hvac_mode == expected_hvac
     assert climate.preset_mode == expected_preset
+    assert climate.native_target_temperature == expected_target
     assert climate.target_temperature == expected_target
 
 
@@ -179,6 +183,7 @@ async def test_current_temperature_sentinel(raw_temp, expected_current):
     api = MagicMock(uid="test-controller")
     climate = EconetCircuitClimate(coordinator, api)
 
+    assert climate.native_current_temperature == expected_current
     assert climate.current_temperature == expected_current
 
 
@@ -543,3 +548,46 @@ async def test_combined_request_reports_failed_writes(
     assert [call.args for call in api.set_param.await_args_list] == expected_writes
     assert coordinator.force_edit_params_refresh.call_count == refresh_count
     assert coordinator.async_request_refresh.await_count == refresh_count
+
+
+def test_modern_ha_does_not_define_legacy_climate_temperature_overrides():
+    """On HA 2026.11+, do not define deprecated climate temperature overrides."""
+    import importlib
+    from types import SimpleNamespace
+
+    from homeassistant.components.climate import ClimateEntity
+
+    from custom_components.econet300 import climate as climate_mod
+
+    class ModernClimateEntity:
+        native_current_temperature = property(lambda self: None)
+        native_target_temperature = property(lambda self: None)
+        native_temperature_unit = property(lambda self: "°C")
+
+    try:
+        ClimateEntity.native_current_temperature = (
+            ModernClimateEntity.native_current_temperature
+        )
+        reloaded = importlib.reload(climate_mod)
+        cls_dict = reloaded.EconetCircuitClimate.__dict__
+        assert "native_current_temperature" in cls_dict
+        assert "native_target_temperature" in cls_dict
+        assert "_attr_native_temperature_unit" in cls_dict
+        assert "current_temperature" not in cls_dict
+        assert "target_temperature" not in cls_dict
+        assert "temperature_unit" not in cls_dict
+        assert "_attr_temperature_unit" not in cls_dict
+        inst = reloaded.EconetCircuitClimate(
+            SimpleNamespace(data={"editParams": {}, "regParams": {}}),
+            SimpleNamespace(
+                uid="test",
+                host="http://test",
+                sw_rev="1",
+                hw_ver="1",
+                model_id="ecoMAX360i",
+            ),
+        )
+        assert inst._attr_native_temperature_unit == UnitOfTemperature.CELSIUS
+    finally:
+        delattr(ClimateEntity, "native_current_temperature")
+        importlib.reload(climate_mod)

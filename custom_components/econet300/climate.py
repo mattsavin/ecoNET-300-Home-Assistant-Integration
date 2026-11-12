@@ -97,7 +97,7 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
 
     _attr_has_entity_name = True
     _attr_translation_key = "circuit1"
-    _attr_temperature_unit = UnitOfTemperature.CELSIUS
+    _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 0.1
     _attr_hvac_modes = [HVACMode.HEAT, HVACMode.AUTO, HVACMode.OFF]
     _attr_preset_modes = [PRESET_COMFORT, PRESET_ECO]
@@ -155,7 +155,7 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
         return None
 
     @property
-    def current_temperature(self) -> float | None:
+    def native_current_temperature(self) -> float | None:
         """Return current room temperature from Circuit1thermostat."""
         reg_params = (self.coordinator.data or {}).get("regParams", {})
         value = _finite_number(reg_params.get(CIRCUIT1_THERMOSTAT_KEY))
@@ -164,7 +164,7 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
         return value
 
     @property
-    def target_temperature(self) -> float | None:
+    def native_target_temperature(self) -> float | None:
         """Return the active target temperature (Day temp or Night temp)."""
         if self._work_state == WORK_STATE_NIGHT:
             return _finite_number(self._eco_entry.get("value"))
@@ -239,7 +239,7 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
         if pump_running:
             flow_temp = _info_param_number(data, "14")
             ret_temp = _info_param_number(data, "15")
-            room_temp = self.current_temperature
+            room_temp = self.native_current_temperature
 
             if flow_temp is not None:
                 # Flow is warmer than return (positive delta-T heat emission)
@@ -389,6 +389,26 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
             # The target changed even if the subsequent mode write failed.
             self.coordinator.force_edit_params_refresh()
             await self.coordinator.async_request_refresh()
+
+
+# Older HA releases consume the legacy names; do not override deprecated
+# members on HA 2026.11+, where native temperature properties are supported.
+if not hasattr(ClimateEntity, "native_current_temperature"):
+    setattr(
+        EconetCircuitClimate,
+        "current_temperature",
+        EconetCircuitClimate.native_current_temperature,
+    )
+    setattr(
+        EconetCircuitClimate,
+        "target_temperature",
+        EconetCircuitClimate.native_target_temperature,
+    )
+    setattr(
+        EconetCircuitClimate,
+        "temperature_unit",
+        property(lambda self: self._attr_native_temperature_unit),
+    )
 
 
 async def async_setup_entry(
