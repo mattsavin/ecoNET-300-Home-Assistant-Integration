@@ -1,5 +1,7 @@
 """Device-specific sensor and binary-sensor key sets and their controller -> key-set mappings."""
 
+from typing import Final
+
 from .core import COMPONENT_LAMBDA, SENSOR_FUEL_STREAM
 
 # =============================================================================
@@ -173,6 +175,12 @@ INFORMATION_PARAMS_SENSOR_MAP: dict[str, str] = {
 EDIT_PARAMS_DATA_SENSOR_MAP: dict[str, str] = {
     "AXENREGISTER64": "1211",
     "AXENREGISTER65": "1212",
+}
+
+# User-friendly display names for generic editParams numbers
+EDIT_PARAM_FRIENDLY_NAMES: Final[dict[str, str]] = {
+    "Circuit1ComfortTemp": "Circuit 1 day temp",
+    "Circuit1EcoTemp": "Circuit 1 night temp",
 }
 
 # ecoSTER thermostat sensors (if moduleEcoSTERSoftVer is not None)

@@ -8,6 +8,7 @@ from homeassistant.components.climate import (
     PRESET_ECO,
     ClimateEntity,
     ClimateEntityFeature,
+    HVACAction,
     HVACMode,
 )
 from homeassistant.config_entries import ConfigEntry
@@ -170,12 +171,66 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
         return None
 
     @property
+    def _is_heating_active(self) -> bool:
+        """Return True if heat is actively demanded or being provided."""
+        data = self.coordinator.data or {}
+
+        # 1. Check HeatDemanded in informationParams (param 26)
+        info_26 = (data.get("informationParams") or {}).get("26")
+        if isinstance(info_26, list) and len(info_26) > 1:
+            inner = info_26[1]
+            if isinstance(inner, list) and len(inner) > 0 and len(inner[0]) > 0:
+                if str(inner[0][0]) == "0":
+                    return True
+                if str(inner[0][0]) == "1":
+                    return False
+
+        # 2. Check flapValveStates and compressor frequency in regParams
+        reg = data.get("regParams") or {}
+        flap = reg.get("flapValveStates")
+        comp = _finite_number(reg.get("AxenCompressorFreq"))
+        if flap == 0 and comp is not None and comp > 0:
+            return True
+
+        return False
+
+    @property
+    def hvac_action(self) -> HVACAction | None:
+        """Return current HVAC action."""
+        if self.hvac_mode == HVACMode.OFF:
+            return HVACAction.OFF
+        if self._is_heating_active:
+            return HVACAction.HEATING
+        return HVACAction.IDLE
+
+    @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return circuit target details as attributes."""
+        """Return circuit target details and heating activity as attributes."""
+        data = self.coordinator.data or {}
+        reg = data.get("regParams") or {}
+
+        heat_demanded = None
+        info_26 = (data.get("informationParams") or {}).get("26")
+        if isinstance(info_26, list) and len(info_26) > 1:
+            inner = info_26[1]
+            if isinstance(inner, list) and len(inner) > 0 and len(inner[0]) > 0:
+                heat_demanded = str(inner[0][0]) == "0"
+
+        flap = reg.get("flapValveStates")
+        flap_str = (
+            {0: "central_heating", 3: "domestic_hot_water"}.get(flap)
+            if flap is not None
+            else None
+        )
+
         return {
             "day_target_temperature": _finite_number(self._comfort_entry.get("value")),
             "night_target_temperature": _finite_number(self._eco_entry.get("value")),
             "circuit_work_state": self._work_state,
+            "heat_demanded": heat_demanded,
+            "is_heating": self._is_heating_active,
+            "compressor_frequency_hz": _finite_number(reg.get("AxenCompressorFreq")),
+            "diverter_valve": flap_str,
         }
 
     @property

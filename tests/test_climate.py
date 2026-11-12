@@ -288,3 +288,65 @@ async def test_availability():
     offline_coordinator = make_coordinator(online=False)
     climate_offline = EconetCircuitClimate(offline_coordinator, api)
     assert climate_offline.available is False
+
+
+@pytest.mark.asyncio
+async def test_hvac_action_off_when_mode_is_off():
+    """hvac_action is OFF when hvac_mode is OFF."""
+    from homeassistant.components.climate import HVACAction
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=0)
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+
+    assert climate.hvac_action == HVACAction.OFF
+
+
+@pytest.mark.asyncio
+async def test_hvac_action_heating_when_demand_active():
+    """hvac_action is HEATING when HeatDemanded signal is 0 (heat)."""
+    from homeassistant.components.climate import HVACAction
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=3)
+    coordinator.data["informationParams"] = {"26": [False, [["0", 0, 1]]]}
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+
+    assert climate.hvac_action == HVACAction.HEATING
+    assert climate.extra_state_attributes["heat_demanded"] is True
+    assert climate.extra_state_attributes["is_heating"] is True
+
+
+@pytest.mark.asyncio
+async def test_hvac_action_idle_when_demand_off():
+    """hvac_action is IDLE when HeatDemanded signal is 1 (off)."""
+    from homeassistant.components.climate import HVACAction
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=3)
+    coordinator.data["informationParams"] = {"26": [False, [["1", 0, 1]]]}
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+
+    assert climate.hvac_action == HVACAction.IDLE
+    assert climate.extra_state_attributes["heat_demanded"] is False
+    assert climate.extra_state_attributes["is_heating"] is False
+
+
+@pytest.mark.asyncio
+async def test_hvac_action_heating_when_compressor_active():
+    """hvac_action is HEATING when compressor is running and valve is on CH."""
+    from homeassistant.components.climate import HVACAction
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=1)
+    coordinator.data["regParams"]["flapValveStates"] = 0
+    coordinator.data["regParams"]["AxenCompressorFreq"] = 45.0
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+
+    assert climate.hvac_action == HVACAction.HEATING
+    assert climate.extra_state_attributes["compressor_frequency_hz"] == 45.0
+    assert climate.extra_state_attributes["diverter_valve"] == "central_heating"

@@ -43,6 +43,7 @@ from .const import (
     DOMAIN,
     ECOSTER_SETPOINT_PARAMS,
     ECOSTER_SETPOINT_PARAMS_ENABLED,
+    EDIT_PARAM_FRIENDLY_NAMES,
     ENTITY_MAX_VALUE,
     ENTITY_MIN_VALUE,
     ENTITY_NUMBER_SENSOR_DEVICE_CLASS_MAP,
@@ -1416,10 +1417,11 @@ class EditParamNumber(CoordinatorEntity[EconetDataCoordinator], NumberEntity):
 
         info = (coordinator.data or {}).get("editParamCatalog", {}).get(self._pid, {})
         pname = info.get("name", f"Param {self._pid}")
+        display_name = EDIT_PARAM_FRIENDLY_NAMES.get(pname, pname)
         self._use_number_suffix = bool(
             info.get("expose_number") and info.get("kind") != "number"
         )
-        self._attr_name = f"{pname} ({self._pid})"
+        self._attr_name = f"{display_name} ({self._pid})"
         if self._use_number_suffix:
             self._attr_name = f"{self._attr_name} value"
 
