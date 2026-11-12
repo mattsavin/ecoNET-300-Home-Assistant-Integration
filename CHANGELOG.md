@@ -3,6 +3,11 @@
 
 ## [Unreleased]
 
+### Added
+
+- **Native climate entity for ecoMAX360i Grant heating circuits**: combines room temperature (`Circuit1thermostat`), target temperature (`Circuit1ComfortTemp` for Day mode, `Circuit1EcoTemp` for Night mode) and work modes (*Off / Day / Night / Schedule*).
+- **Native water heater entity and DHW boost button for ecoMAX360i heat pumps**: the controller's DHW temperature, target setpoint and work mode (*Off / On / Schedule*) are combined into a proper `water_heater` entity, and a *DHW boost* button triggers the controller's one-shot DHW loading (`HDWStartOneLoading`). Both are created only on ecoMAX360i controllers with the `gm3_pomp` protocol and writable DHW metadata; writes are validated against the controller's own limits and rejected when data is stale or parameters are locked. Names in English, Polish and German.
+
 ### Fixed
 
 - **ecoMAX360i setpoints rounded to whole degrees ([#273](https://github.com/jontofront/ecoNET-300-Home-Assistant-Integration/issues/273))**: Comfort and Eco setpoints of the heating circuits accept 0.1 °C in the ecoNET app, but Home Assistant only allowed 1 °C steps and sent 21.5 °C as 22 °C. The step comes from the `editableParams` menu entries of `editParams`. Those entries are keyed by menu item, and the parameter id is their first element, but the integration looked them up by parameter id, so it missed the step and guessed 1 °C from whole-number values like `21.0`. It now finds them by parameter id and uses their min, max and step like the ecoNET app does. Values are rounded to the step before they are sent, so 21.5 is not sent as `21.500000000000004`.

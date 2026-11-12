@@ -1447,6 +1447,16 @@
           }
         }
       }
+    },
+    "water_heater": {
+      "dhw": {
+        "name": "DHW"
+      }
+    },
+    "button": {
+      "dhw_boost": {
+        "name": "DHW boost"
+      }
     }
   },
   "system_health": {

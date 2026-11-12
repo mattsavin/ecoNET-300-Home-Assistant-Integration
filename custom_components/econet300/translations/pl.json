@@ -1447,6 +1447,16 @@
           }
         }
       }
+    },
+    "water_heater": {
+      "dhw": {
+        "name": "C.W.U."
+      }
+    },
+    "button": {
+      "dhw_boost": {
+        "name": "Nagrzanie C.W.U."
+      }
     }
   },
   "system_health": {
