@@ -312,6 +312,17 @@ class TestCreateEditParamEntities:
         assert number.native_min_value == 40
         assert number.native_max_value == 80
 
+    def test_circuit1_setpoints_use_friendly_names(self):
+        """Circuit 1 comfort/eco setpoints are given clear day/night labels."""
+        catalog = {
+            "238": {"name": "Circuit1ComfortTemp", "value": 22.5, "kind": "number"},
+            "239": {"name": "Circuit1EcoTemp", "value": 21.2, "kind": "number"},
+        }
+        entities = _create_edit_param_numbers(_coordinator(catalog), _make_api())
+        numbers = {e._pid: e for e in cast("list[EditParamNumber]", entities)}
+        assert numbers["238"].name == "Circuit 1 day temp (238)"
+        assert numbers["239"].name == "Circuit 1 night temp (239)"
+
     def test_select_current_option_for_value_in_options(self):
         catalog = _catalog()
         select = _create_edit_param_selects(_coordinator(catalog), _make_api())[0]
