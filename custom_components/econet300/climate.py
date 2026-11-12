@@ -31,9 +31,7 @@ CIRCUIT1_ECO_TEMP_PARAM = "239"  # Night temp
 CIRCUIT1_THERMOSTAT_KEY = "Circuit1thermostat"
 
 # ecoMAX360i Grant Circuit 1 work states:
-# 0 = Off, 1 = Day mode (Comfort), 2 = Night mode (Eco), 3 = Schedule.
-# All 4 states, Day/Night target temperature routing, and 0.1°C precision
-# fully field-verified live on 2026-11-12 with Grant Aerona 290 and Grant smart thermostat.
+# 0 = Off, 1 = Day mode (Comfort), 2 = Night mode (Eco), 3 = Schedule
 WORK_STATE_OFF = 0
 WORK_STATE_DAY = 1
 WORK_STATE_NIGHT = 2
