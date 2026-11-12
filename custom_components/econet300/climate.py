@@ -30,7 +30,7 @@ CIRCUIT1_COMFORT_TEMP_PARAM = "238"  # Day temp
 CIRCUIT1_ECO_TEMP_PARAM = "239"  # Night temp
 CIRCUIT1_THERMOSTAT_KEY = "Circuit1thermostat"
 
-# ecoMAX360i Grant Circuit 1 work states:
+# ecoMAX360i Circuit 1 work states:
 # 0 = Off, 1 = Day mode (Comfort), 2 = Night mode (Eco), 3 = Schedule
 WORK_STATE_OFF = 0
 WORK_STATE_DAY = 1
@@ -67,7 +67,7 @@ def _valid_circuit_param(data: dict[str, Any], param_id: str, name: str) -> bool
 
 
 def _climate_platform_supported(data: dict[str, Any]) -> bool:
-    """Return True when this controller supports the Grant circuit climate entity."""
+    """Return True when this controller supports the circuit climate entity."""
     sys_params = data.get("sysParams") or {}
     return (
         is_ecomax360i_controller(sys_params.get("controllerID"))
@@ -80,7 +80,7 @@ def _climate_platform_supported(data: dict[str, Any]) -> bool:
 
 
 class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEntity):
-    """Climate entity combining Grant room thermostat, targets, and operating modes."""
+    """Climate entity combining room thermostat, targets, and operating modes."""
 
     _attr_has_entity_name = True
     _attr_translation_key = "circuit1"
