@@ -149,6 +149,62 @@ def _readd(migration, coordinator, key):
 
 
 @pytest.mark.asyncio
+async def test_modern_child_registration_uses_supported_registry_api(
+    migration, monkeypatch
+):
+    """A modern registry exposes async_get_or_create_child, not the old mock name."""
+    monkeypatch.setattr(device_grouping, "_CHILD_DEVICE_INFO", lambda **kw: kw)
+    children = []
+
+    def create_child(*, config_entry_id, parent_device_id, identifiers, name):
+        children.append((parent_device_id, identifiers))
+        return migration.devices.async_get_or_create(
+            config_entry_id=config_entry_id, identifiers=identifiers, name=name
+        )
+
+    monkeypatch.setattr(
+        migration.devices, "async_get_or_create_child", create_child, raising=False
+    )
+    coordinator = _coordinator(migration)
+    await device_grouping.async_setup_component_devices(
+        migration.hass, migration.entry, coordinator, migration.api
+    )
+    assert children
+    assert children[0][0] == coordinator.component_device_ids["controller"]
+    assert "circuit_1" in coordinator.component_device_ids
+
+
+@pytest.mark.asyncio
+async def test_existing_child_survives_temporarily_missing_readings(
+    migration, monkeypatch
+):
+    """An existing child must stay registered when its circuit reading disappears."""
+    child = SimpleNamespace(
+        identifiers={(DOMAIN, f"{migration.api.uid}-circuit-1")}, id="child-id"
+    )
+    monkeypatch.setattr(
+        dr,
+        "async_child_entries_for_config_entry",
+        lambda registry, entry_id: [child],
+        raising=False,
+    )
+    monkeypatch.setattr(device_grouping, "_CHILD_DEVICE_INFO", lambda **kw: kw)
+    monkeypatch.setattr(
+        migration.devices,
+        "async_get_or_create_child",
+        lambda **kw: child,
+        raising=False,
+    )
+    coordinator = _coordinator(migration)
+    coordinator.data["regParams"]["TempClutch"] = 999
+    coordinator.data["regParams"]["Circuit1thermostat"] = 999
+    await device_grouping.async_setup_component_devices(
+        migration.hass, migration.entry, coordinator, migration.api
+    )
+    assert coordinator.component_device_ids["circuit_1"] == child.id
+
+
+@pytest.mark.asyncio
 async def test_component_reassignment_preserves_entity_registry_customizations(
     migration,
 ):

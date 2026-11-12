@@ -285,9 +285,11 @@ async def async_setup_component_devices(
         for number in range(1, 8)
     )
     existing = {}
-    for device in registry.devices.values():
-        if entry.entry_id not in device.config_entries:
-            continue
+    devices = dr.async_entries_for_config_entry(registry, entry.entry_id)
+    child_entries = getattr(dr, "async_child_entries_for_config_entry", None)
+    if child_entries is not None:
+        devices += child_entries(registry, entry.entry_id)
+    for device in devices:
         for component in candidates:
             if (DOMAIN, _identifier(api.uid, component)) in device.identifiers:
                 existing[component] = device
@@ -305,7 +307,7 @@ async def async_setup_component_devices(
             if key not in ("translation_key", "translation_placeholders")
         }
         if _child_component(component) and _CHILD_DEVICE_INFO is not None:
-            device = registry.async_get_or_create_child_device(
+            device = registry.async_get_or_create_child(
                 config_entry_id=entry.entry_id, **args
             )
         else:
