@@ -1434,6 +1434,19 @@
       "schedule_water_heater_2": {
         "name": "Water heater 2 schedule"
       }
+    },
+    "climate": {
+      "circuit1": {
+        "name": "Circuit 1",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Day mode",
+              "eco": "Night mode"
+            }
+          }
+        }
+      }
     }
   },
   "system_health": {

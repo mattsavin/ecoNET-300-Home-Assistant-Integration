@@ -1,0 +1,290 @@
+"""Tests for the ecoMAX360i Grant climate entity."""
+
+import json
+from pathlib import Path
+from unittest.mock import AsyncMock, MagicMock
+
+from homeassistant.components.climate import (
+    ClimateEntityFeature,
+    HVACMode,
+    PRESET_COMFORT,
+    PRESET_ECO,
+)
+from homeassistant.const import ATTR_TEMPERATURE, Platform, UnitOfTemperature
+from homeassistant.exceptions import HomeAssistantError
+import pytest
+
+from custom_components.econet300 import PLATFORMS
+
+
+def make_coordinator(
+    controller_id: str = "ecoMAX360i",
+    protocol_type: str = "gm3_pomp",
+    room_temp: float | None = 20.8,
+    work_state: int = 3,
+    comfort_temp: float = 22.5,
+    eco_temp: float = 21.2,
+    stale: bool = False,
+    online: bool = True,
+):
+    """Build coordinator data mock for ecoMAX360i climate tests."""
+    path = Path(__file__).parent / "fixtures" / "ecoMAX360-cf8" / "editParams.json"
+    raw = json.loads(path.read_text())
+    edit_data = raw["data"].copy()
+
+    # Configure circuit 1 params in edit_data
+    edit_data["236"] = {
+        "name": "Circuit1WorkState",
+        "value": work_state,
+        "edit": True,
+        "minv": 0,
+        "maxv": 3,
+        "mult": 1,
+        "unit": 0,
+    }
+    edit_data["238"] = {
+        "name": "Circuit1ComfortTemp",
+        "value": comfort_temp,
+        "edit": True,
+        "minv": 10,
+        "maxv": 35,
+        "mult": 1,
+        "unit": 0,
+    }
+    edit_data["239"] = {
+        "name": "Circuit1EcoTemp",
+        "value": eco_temp,
+        "edit": True,
+        "minv": 10,
+        "maxv": 35,
+        "mult": 1,
+        "unit": 0,
+    }
+
+    coordinator = MagicMock()
+    coordinator.data = {
+        "sysParams": {
+            "controllerID": controller_id,
+            "protocolType": protocol_type,
+        },
+        "regParams": {"Circuit1thermostat": room_temp},
+        "editParams": edit_data,
+        "_health": {"stale": stale, "online": online},
+    }
+    coordinator.single_device_tree = False
+    coordinator.controller_device_id = None
+    coordinator.async_request_refresh = AsyncMock()
+    coordinator.force_edit_params_refresh = MagicMock()
+    return coordinator
+
+
+def test_climate_platform_registered():
+    """Home Assistant must load the climate platform."""
+    assert Platform.CLIMATE in PLATFORMS
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_creates_entity_for_ecomax360i():
+    """Climate entity is added for supported ecoMAX360i controllers."""
+    from custom_components.econet300.climate import async_setup_entry
+
+    coordinator = make_coordinator()
+    api = MagicMock(uid="test-controller")
+    hass = MagicMock()
+    hass.data = {"econet300": {"entry": {"api": api, "coordinator": coordinator}}}
+    add_entities = MagicMock()
+
+    await async_setup_entry(hass, MagicMock(entry_id="entry"), add_entities)
+
+    assert add_entities.called
+    entities = add_entities.call_args[0][0]
+    assert len(entities) == 1
+    climate = entities[0]
+
+    assert climate.unique_id == "test-controller-circuit1"
+    assert climate.temperature_unit == UnitOfTemperature.CELSIUS
+    assert climate.current_temperature == 20.8
+    assert climate.target_temperature == 22.5
+    assert climate.target_temperature_step == 0.1
+    assert climate.min_temp == 10.0
+    assert climate.max_temp == 35.0
+    assert climate.hvac_mode == HVACMode.AUTO
+    assert climate.preset_mode is None
+    assert climate.supported_features == (
+        ClimateEntityFeature.TARGET_TEMPERATURE | ClimateEntityFeature.PRESET_MODE
+    )
+
+
+@pytest.mark.asyncio
+async def test_setup_entry_skips_unsupported_controller():
+    """Unsupported controllers do not create climate entities."""
+    from custom_components.econet300.climate import async_setup_entry
+
+    coordinator = make_coordinator(controller_id="ecoMAX810P-L", protocol_type="em")
+    api = MagicMock(uid="test-controller")
+    hass = MagicMock()
+    hass.data = {"econet300": {"entry": {"api": api, "coordinator": coordinator}}}
+    add_entities = MagicMock()
+
+    await async_setup_entry(hass, MagicMock(entry_id="entry"), add_entities)
+    assert not add_entities.called
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("work_state", "expected_hvac", "expected_preset", "expected_target"),
+    [
+        (0, HVACMode.OFF, None, 22.5),
+        (1, HVACMode.HEAT, PRESET_COMFORT, 22.5),
+        (2, HVACMode.HEAT, PRESET_ECO, 21.2),
+        (3, HVACMode.AUTO, None, 22.5),
+    ],
+)
+async def test_work_state_mapping(
+    work_state, expected_hvac, expected_preset, expected_target
+):
+    """Circuit1WorkState maps to HA HVAC and preset modes."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(
+        work_state=work_state, comfort_temp=22.5, eco_temp=21.2
+    )
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+
+    assert climate.hvac_mode == expected_hvac
+    assert climate.preset_mode == expected_preset
+    assert climate.target_temperature == expected_target
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("raw_temp", "expected_current"),
+    [
+        (20.8, 20.8),
+        (22.85, 22.85),
+        (999, None),
+        (999.0, None),
+        (None, None),
+    ],
+)
+async def test_current_temperature_sentinel(raw_temp, expected_current):
+    """Disconnected sentinel (999) returns None for current_temperature."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(room_temp=raw_temp)
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+
+    assert climate.current_temperature == expected_current
+
+
+@pytest.mark.asyncio
+async def test_set_hvac_mode_writes_work_state():
+    """Changing HVAC mode writes the correct Circuit1WorkState."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator()
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    climate = EconetCircuitClimate(coordinator, api)
+
+    await climate.async_set_hvac_mode(HVACMode.OFF)
+    api.set_param.assert_awaited_with("236", 0)
+
+    await climate.async_set_hvac_mode(HVACMode.AUTO)
+    api.set_param.assert_awaited_with("236", 3)
+
+    await climate.async_set_hvac_mode(HVACMode.HEAT)
+    api.set_param.assert_awaited_with("236", 1)
+
+
+@pytest.mark.asyncio
+async def test_set_preset_mode_writes_work_state():
+    """Changing preset mode writes Day (1) or Night (2)."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator()
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    climate = EconetCircuitClimate(coordinator, api)
+
+    await climate.async_set_preset_mode(PRESET_COMFORT)
+    api.set_param.assert_awaited_with("236", 1)
+
+    await climate.async_set_preset_mode(PRESET_ECO)
+    api.set_param.assert_awaited_with("236", 2)
+
+
+@pytest.mark.asyncio
+async def test_set_temperature_in_comfort_writes_param_238():
+    """Setting temperature while in Day/Comfort mode adjusts Circuit1ComfortTemp."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=1)
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    climate = EconetCircuitClimate(coordinator, api)
+
+    await climate.async_set_temperature(**{ATTR_TEMPERATURE: 23.5})
+    api.set_param.assert_awaited_once_with("238", 23.5)
+    coordinator.force_edit_params_refresh.assert_called_once()
+    coordinator.async_request_refresh.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_set_temperature_in_eco_writes_param_239():
+    """Setting temperature while in Night/Eco mode adjusts Circuit1EcoTemp."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=2)
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    climate = EconetCircuitClimate(coordinator, api)
+
+    await climate.async_set_temperature(**{ATTR_TEMPERATURE: 20.5})
+    api.set_param.assert_awaited_once_with("239", 20.5)
+
+
+@pytest.mark.asyncio
+async def test_set_temperature_rounds_to_tenth_step():
+    """Target temperature writes are rounded to 0.1°C step."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=1)
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    climate = EconetCircuitClimate(coordinator, api)
+
+    await climate.async_set_temperature(**{ATTR_TEMPERATURE: 21.56})
+    api.set_param.assert_awaited_once_with("238", 21.6)
+
+
+@pytest.mark.asyncio
+async def test_set_temperature_out_of_bounds_raises():
+    """Temperature writes outside [10, 35] raise HomeAssistantError."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator()
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+
+    with pytest.raises(HomeAssistantError):
+        await climate.async_set_temperature(**{ATTR_TEMPERATURE: 9.9})
+
+    with pytest.raises(HomeAssistantError):
+        await climate.async_set_temperature(**{ATTR_TEMPERATURE: 35.1})
+
+
+@pytest.mark.asyncio
+async def test_availability():
+    """Availability reflects coordinator health and parameter presence."""
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator()
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+    assert climate.available is True
+
+    stale_coordinator = make_coordinator(stale=True)
+    climate_stale = EconetCircuitClimate(stale_coordinator, api)
+    assert climate_stale.available is False
+
+    offline_coordinator = make_coordinator(online=False)
+    climate_offline = EconetCircuitClimate(offline_coordinator, api)
+    assert climate_offline.available is False

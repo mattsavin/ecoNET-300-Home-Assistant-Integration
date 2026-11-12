@@ -1434,6 +1434,19 @@
       "schedule_water_heater_2": {
         "name": "Warmwasserbereiter 2 Zeitplan"
       }
+    },
+    "climate": {
+      "circuit1": {
+        "name": "Heizkreis 1",
+        "state_attributes": {
+          "preset_mode": {
+            "state": {
+              "comfort": "Tagmodus",
+              "eco": "Nachtmodus"
+            }
+          }
+        }
+      }
     }
   },
   "system_health": {
