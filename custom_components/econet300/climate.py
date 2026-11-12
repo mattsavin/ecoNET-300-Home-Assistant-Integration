@@ -1,4 +1,4 @@
-"""Climate entity for ecoMAX360i Grant heating circuits."""
+"""Climate entity for ecoMAX360i heating circuits."""
 
 import math
 from typing import Any

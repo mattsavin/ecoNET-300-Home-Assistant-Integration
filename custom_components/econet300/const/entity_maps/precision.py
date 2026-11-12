@@ -130,7 +130,7 @@ ENTITY_PRECISION = {
     "ecoSterSetTemp7": 1,
     "ecoSterSetTemp8": 1,
     "heatingUpperTemp": 1,
-    # Circuit1thermostat is room temperature on ecoMAX360i (Grant smart thermostat).
+    # Circuit1thermostat is room temperature on ecoMAX360i.
     "Circuit1thermostat": 1,
     "heating_work_state_pump4": None,
     # ecoSOL specific precision (ecoSOL [n] models)
