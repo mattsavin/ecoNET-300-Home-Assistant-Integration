@@ -64,6 +64,23 @@ class TestCoordinatorLegacyOnly:
     """Test coordinator skips RM/merged when probe returns False (legacy-only module)."""
 
     @pytest.mark.asyncio
+    async def test_coordinator_retains_reg_params_schematic(self, hass, load_fixture):
+        """Preserve the separate schematic from the same regParams read."""
+        api = MagicMock(spec=Econet300Api)
+        api.reg_params_schema = {"Bufor": [[], False, True]}
+        api.fetch_sys_params = AsyncMock(
+            return_value=load_fixture("ecoMAX860D3-HB", "sysParams.json")
+        )
+        api.fetch_param_edit_data = AsyncMock(return_value={})
+        api.fetch_reg_params = AsyncMock(return_value={"reading": 1})
+        api.fetch_reg_params_data = AsyncMock(return_value={})
+        api.probe_rm_support = AsyncMock(return_value=False)
+        entry = MagicMock(entry_id="test-entry-id", data={"host": "192.0.2.1"})
+        coordinator = EconetDataCoordinator(hass, api, entry)
+        result = await coordinator._async_update_data()
+        assert result["regParamsSchema"] == api.reg_params_schema
+
+    @pytest.mark.asyncio
     async def test_coordinator_skips_rm_and_merged_when_probe_false(
         self, hass, load_fixture
     ):

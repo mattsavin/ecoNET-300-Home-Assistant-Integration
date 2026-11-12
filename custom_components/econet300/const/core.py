@@ -152,6 +152,10 @@ STALE_AFTER_SECONDS = 600
 # Controls whether entities are exposed under separate per-component devices
 # (split) or merged under a single PLUM ecoNET300 device (single).
 CONF_DEVICE_GROUPING = "device_grouping"
+CONF_BUFFER_PRESENCE = "buffer_presence"
+BUFFER_PRESENCE_UNKNOWN = "unknown"
+BUFFER_PRESENCE_PRESENT = "present"
+BUFFER_PRESENCE_ABSENT = "absent"
 DEVICE_GROUPING_SPLIT = "split"
 DEVICE_GROUPING_COMPONENTS = "components"
 DEVICE_GROUPING_SINGLE = "single"

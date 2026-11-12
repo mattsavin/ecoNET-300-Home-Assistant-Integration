@@ -27,6 +27,8 @@ from .common_functions import (
     is_ecoster_connected,
 )
 from .const import (
+    BUFFER_PRESENCE_UNKNOWN,
+    CONF_BUFFER_PRESENCE,
     CONF_DEVICE_GROUPING,
     CONF_POLL_EDIT_PARAMS,
     CONF_POLL_REG_PARAMS,
@@ -258,6 +260,9 @@ class EconetDataCoordinator(DataUpdateCoordinator):
         )
         self._device_grouping = options.get(
             CONF_DEVICE_GROUPING, DEFAULT_DEVICE_GROUPING
+        )
+        self.buffer_presence = options.get(
+            CONF_BUFFER_PRESENCE, BUFFER_PRESENCE_UNKNOWN
         )
         self.component_device_ids = {}
 
@@ -492,6 +497,9 @@ class EconetDataCoordinator(DataUpdateCoordinator):
                 result = {
                     "sysParams": copy.deepcopy(sys_params),
                     "regParams": copy.deepcopy(reg_params),
+                    "regParamsSchema": copy.deepcopy(
+                        getattr(self._api, "reg_params_schema", None)
+                    ),
                     "regParamsData": copy.deepcopy(reg_params_data),
                     "paramsEdits": copy.deepcopy(params_edits),
                     "editParams": copy.deepcopy(edit_params_data),

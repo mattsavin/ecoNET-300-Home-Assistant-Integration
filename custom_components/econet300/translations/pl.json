@@ -120,7 +120,8 @@
         "title": "Ustawienia urządzeń",
         "description": "Wybierz sposób grupowania encji w urządzenia. Split (domyślnie) zachowuje dotychczasowy podział na komponenty (kocioł, mieszacze, lambda, ecoSTER itd.). Single łączy wszystko w jedno urządzenie. Heat pump components (opt-in) to opcjonalny podział na obsługiwane urządzenia fizyczne i logiczne grupy ogrzewania, wyłącznie dla sterowników ecoMAX360i z protokołem gm3_pomp. Identyfikatory encji pozostają bez zmian, ale po włączeniu tego trybu i po powrocie sprawdź automatyzacje wskazujące urządzenia oraz przypisania do obszarów; automatyzacje nie są przepisywane automatycznie.",
         "data": {
-          "device_grouping": "Grupowanie urządzeń"
+          "device_grouping": "Grupowanie urządzeń",
+          "buffer_presence": "Grupowanie urządzenia bufora"
         },
         "data_description": {
           "device_grouping": "Split, Single lub Heat pump components (opt-in). Tryb komponentów zmienia przypisanie encji i hierarchię urządzeń, mimo zachowania pierwotnego urządzenia bramki. W obu kierunkach sprawdź automatyzacje wskazujące urządzenia i przypisania do obszarów; automatycznie nadawane nazwy mogą się zmienić."

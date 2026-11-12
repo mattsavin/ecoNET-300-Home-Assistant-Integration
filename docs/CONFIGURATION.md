@@ -66,6 +66,11 @@ Use **Device settings** to choose how Home Assistant groups entities:
 Split and Single retain their existing behaviour; component mode is never enabled automatically.
 Select **Heat pump components (opt-in)** in this menu and save to enable it.
 
+In the same menu, choose **Separate buffer group** or **No separate buffer group**. The default
+**Unknown** preserves an existing buffer group but does not create a new one. This setting changes
+device grouping, not the controller's hydraulic configuration, and does not establish that any
+buffer-labelled readings correspond to a dedicated sensor.
+
 ### Heat pump component layout
 
 The existing ecoNET300 device remains the gateway. A separate PLUM controller owns controller diagnostics

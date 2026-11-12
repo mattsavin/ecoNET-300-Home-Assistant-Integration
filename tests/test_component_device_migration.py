@@ -72,7 +72,7 @@ async def migration(hass, monkeypatch, load_fixture):
     data = {
         "sysParams": load_fixture("ecoMAX360-cf8", "sysParams.json"),
         "regParams": registers.get("curr", registers),
-        "regParamsData": registers,
+        "regParamsSchema": registers["schemaParams"],
         "editParams": editable["data"],
         "editParamsFull": editable,
         "editParamCatalog": build_edit_param_catalog(editable),
@@ -106,13 +106,13 @@ async def migration(hass, monkeypatch, load_fixture):
     )
 
 
-def _coordinator(migration, mode="components"):
+def _coordinator(migration, mode="components", buffer_presence="unknown"):
     """Create the same fresh coordinator an integration reload would use."""
     coordinator = EconetDataCoordinator(
         migration.hass,
         migration.api,
         migration.entry,
-        options={CONF_DEVICE_GROUPING: mode},
+        options={CONF_DEVICE_GROUPING: mode, "buffer_presence": buffer_presence},
     )
     coordinator.data = deepcopy(migration.data)
     coordinator.controller_device_id = migration.root.id
@@ -202,6 +202,67 @@ async def test_existing_child_survives_temporarily_missing_readings(
         migration.hass, migration.entry, coordinator, migration.api
     )
     assert coordinator.component_device_ids["circuit_1"] == child.id
+
+
+@pytest.mark.asyncio
+async def test_confirmed_no_buffer_moves_entities_without_deleting_device(migration):
+    """User-confirmed absence overrides retention while preserving identities."""
+    old = migration.devices.async_get_or_create(
+        config_entry_id=migration.entry.entry_id,
+        identifiers={(DOMAIN, f"{migration.api.uid}-buffer")},
+        name="Buffer",
+    )
+    original = migration.entities.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        f"{migration.api.uid}-TempBuforDown",
+        config_entry=migration.entry,
+        device_id=old.id,
+    )
+    original = migration.entities.async_update_entity(
+        original.entity_id, name="My buffer sensor", area_id=migration.living_room
+    )
+    migration.data["regParamsSchema"] = {"Bufor": [[], False, True]}
+    coordinator = _coordinator(migration, buffer_presence="absent")
+    await device_grouping.async_setup_component_devices(
+        migration.hass, migration.entry, coordinator, migration.api
+    )
+    assert "buffer" not in coordinator.component_device_ids
+    updated = _readd(migration, coordinator, "TempBuforDown")
+    assert updated.id == original.id
+    assert updated.unique_id == original.unique_id
+    assert updated.name == original.name
+    assert updated.area_id == original.area_id
+    assert updated.device_id == coordinator.component_device_ids["controller"]
+    assert migration.devices.async_get(old.id) is not None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("schema", [None, {}, {"Bufor": []}, {"Bufor": [[], False]}])
+async def test_unknown_schematic_preserves_existing_buffer(migration, schema):
+    """Missing or malformed flags do not detach a previously registered device."""
+    old = migration.devices.async_get_or_create(
+        config_entry_id=migration.entry.entry_id,
+        identifiers={(DOMAIN, f"{migration.api.uid}-buffer")},
+        name="Buffer",
+    )
+    migration.data["regParamsSchema"] = schema
+    coordinator = _coordinator(migration)
+    await device_grouping.async_setup_component_devices(
+        migration.hass, migration.entry, coordinator, migration.api
+    )
+    assert coordinator.component_device_ids["buffer"] == old.id
+
+
+@pytest.mark.asyncio
+async def test_confirmed_buffer_creates_a_device_without_schematic(migration):
+    """A user-confirmed buffer can be grouped without schematic data."""
+    migration.data["regParamsSchema"] = None
+    coordinator = _coordinator(migration, buffer_presence="present")
+    await device_grouping.async_setup_component_devices(
+        migration.hass, migration.entry, coordinator, migration.api
+    )
+    assert "buffer" in coordinator.component_device_ids
 
 
 @pytest.mark.asyncio
@@ -329,10 +390,12 @@ async def test_reused_logical_fallback_clears_controller_metadata(
     )
     # This migration test explicitly models an installed buffer, not its defaults.
     if suffix == "buffer":
-        migration.data["regParamsData"]["schemaParams"]["Bufor"][1] = True
+        migration.data["regParamsSchema"]["Bufor"][1] = True
         migration.data["regParams"]["TempBuforUp"] = 35.0
         migration.data["regParams"]["TempBuforDown"] = 30.0
-    coordinator = _coordinator(migration)
+    coordinator = _coordinator(
+        migration, buffer_presence="present" if suffix == "buffer" else "unknown"
+    )
     await device_grouping.async_setup_component_devices(
         migration.hass, migration.entry, coordinator, migration.api
     )

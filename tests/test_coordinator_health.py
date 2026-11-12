@@ -844,3 +844,31 @@ class TestPollingSettingsOptionsFlow:
         assert saved[CONF_POLL_EDIT_PARAMS] == 0
         assert saved["existing"] is True
         mocks.hass.config_entries.async_reload.assert_called_once_with("e1")
+
+
+@pytest.mark.asyncio
+async def test_device_settings_offers_and_saves_buffer_confirmation():
+    """Buffer confirmation is available in the actual options form."""
+    handler = EconetOptionsFlowHandler()
+    handler.hass = MagicMock()
+    handler.async_show_form = MagicMock(return_value={"type": "form"})
+    handler.async_create_entry = MagicMock(return_value={"type": "create_entry"})
+    with patch.object(
+        EconetOptionsFlowHandler, "config_entry", new_callable=PropertyMock
+    ) as config:
+        config.return_value = MagicMock(options={}, entry_id="e1")
+        await handler.async_step_device_settings()
+        schema = handler.async_show_form.call_args.kwargs["data_schema"]
+        assert (
+            schema({"device_grouping": "components", "buffer_presence": "absent"})[
+                "buffer_presence"
+            ]
+            == "absent"
+        )
+        await handler.async_step_device_settings(
+            {"device_grouping": "components", "buffer_presence": "absent"}
+        )
+    assert (
+        handler.async_create_entry.call_args.kwargs["data"]["buffer_presence"]
+        == "absent"
+    )

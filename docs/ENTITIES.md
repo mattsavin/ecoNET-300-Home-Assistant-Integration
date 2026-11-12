@@ -54,9 +54,9 @@ brand/model or room-thermostat hardware identity is guessed.
   establish a connected thermostat. No room humidity entity is added.
 - DHW requires a valid `TempCWU` reading and the named `HDWTSetPoint` parameter. This grouping gate does not
   relax the existing water-heater and boost controls' own editable-metadata requirements.
-- Buffer grouping requires schematic `Bufor[1]` to be true. Only when that schematic information is absent
-  can older firmware use buffer configuration plus a valid buffer temperature as inferred presence.
-  A finite `TempBuforDown` reading alone does not prove a buffer is fitted.
+- In **Device settings**, choose whether to create or exclude a separate buffer group. When set to Unknown,
+  no new buffer group is created and existing buffer groups retain their entities. Schematic display flags,
+  editable settings and temperature readings do not by themselves establish a dedicated buffer sensor.
 - Temperature checks reject disconnected sentinels `999` and `65535`, non-finite values and booleans.
   Previously discovered component devices are retained during transient missing/disconnected readings.
 - Ambiguous controls remain on the controller. This mode does not decode undocumented `heating_work_state`

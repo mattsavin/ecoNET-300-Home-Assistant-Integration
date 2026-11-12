@@ -1,11 +1,25 @@
 """Capability-gated ecoMAX360i component ownership."""
 
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
 from custom_components.econet300.common import build_edit_param_catalog
+
+
+@pytest.mark.asyncio
+async def test_reg_params_preserves_schematic_without_an_extra_request(load_fixture):
+    """Capture the real schematic alongside curr from one controller response."""
+    from custom_components.econet300.api import Econet300Api
+
+    raw = load_fixture("ecoMAX360-cf8", "regParams.json")
+    client = MagicMock(host="http://example.invalid", get=AsyncMock(return_value=raw))
+    api = Econet300Api(client, MagicMock())
+    readings = await api.fetch_reg_params()
+    assert readings == raw["curr"]
+    assert api.reg_params_schema == raw["schemaParams"]
+    client.get.assert_awaited_once()
 
 
 @pytest.fixture
@@ -16,7 +30,7 @@ def heat_pump_data(load_fixture):
     return {
         "sysParams": load_fixture("ecoMAX360-cf8", "sysParams.json"),
         "regParams": registers.get("curr", registers),
-        "regParamsData": registers,
+        "regParamsSchema": registers["schemaParams"],
         "editParams": editable["data"],
         "editParamsFull": editable,
         "editParamCatalog": build_edit_param_catalog(editable),
@@ -94,19 +108,19 @@ def test_invalid_thermostat_reading_does_not_discover_a_device(
     assert "circuit_1" in supported_components(heat_pump_data)
 
 
-def test_visible_buffer_is_grouped_without_changing_existing_entities(heat_pump_data):
-    """Use the schematic visibility flag, not an incidental finite pipe reading."""
+def test_visible_buffer_icon_does_not_prove_buffer_presence(heat_pump_data):
+    """The vendor schematic visibility flag is not physical presence evidence."""
     from custom_components.econet300.device_grouping import component_for_key
 
-    heat_pump_data["regParamsData"]["schemaParams"]["Bufor"][1] = True
-    assert component_for_key(heat_pump_data, "TempBuforDown") == "buffer"
-    assert component_for_key(heat_pump_data, "BuforSETTINGS") == "buffer"
+    heat_pump_data["regParamsSchema"]["Bufor"][1] = True
+    assert component_for_key(heat_pump_data, "TempBuforDown") == "controller"
+    assert component_for_key(heat_pump_data, "BuforSETTINGS") == "controller"
 
 
-def test_older_fixture_buffer_requires_configuration_and_valid_temperature(
+def test_unknown_buffer_presence_does_not_create_device_from_readings(
     load_fixture,
 ):
-    """Without schematic data, both buffer configuration and a reading are required."""
+    """A plausible reading and editable defaults do not prove a buffer exists."""
     from custom_components.econet300.device_grouping import supported_components
 
     registers = load_fixture("ecoMAX360i", "regParams.json")
@@ -116,8 +130,6 @@ def test_older_fixture_buffer_requires_configuration_and_valid_temperature(
         "regParams": registers,
         "editParams": editable["data"],
     }
-    assert "buffer" in supported_components(data)
-    data["regParams"]["TempBuforDown"] = 999
     assert "buffer" not in supported_components(data)
 
 

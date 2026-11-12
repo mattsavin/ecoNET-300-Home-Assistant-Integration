@@ -8,7 +8,7 @@ from homeassistant.const import MAJOR_VERSION, MINOR_VERSION
 from homeassistant.helpers import device_registry as dr
 
 from .common_functions import is_ecomax360i_controller
-from .const import DOMAIN
+from .const import BUFFER_PRESENCE_ABSENT, BUFFER_PRESENCE_PRESENT, DOMAIN
 
 
 def _supported(data: dict[str, Any]) -> bool:
@@ -107,22 +107,6 @@ def supported_components(data: dict[str, Any]) -> set[str]:
         and setpoint.get("name") == "HDWTSetPoint"
     ):
         components.add("dhw")
-    schema = (data.get("regParamsData") or {}).get("schemaParams") or {}
-    buffer = schema.get("Bufor")
-    if isinstance(buffer, list) and len(buffer) > 1:
-        has_buffer = buffer[1] is True
-    else:
-        configured = any(
-            isinstance(entry, dict)
-            and entry.get("name") in ("BuforSETTINGS", "BuforsetPoint")
-            for entry in editable.values()
-        )
-        # Older firmware lacks schematic visibility; both pieces of evidence are required.
-        has_buffer = configured and any(
-            _temperature(registers.get(key)) for key in ("TempBuforUp", "TempBuforDown")
-        )
-    if has_buffer:
-        components.add("buffer")
     return components
 
 
@@ -295,6 +279,10 @@ async def async_setup_component_devices(
                 existing[component] = device
     # Once discovered, a temporarily disconnected sensor must not move its entities.
     components.update(existing)
+    if coordinator.buffer_presence == BUFFER_PRESENCE_PRESENT:
+        components.add("buffer")
+    elif coordinator.buffer_presence == BUFFER_PRESENCE_ABSENT:
+        components.discard("buffer")
     coordinator.component_device_ids = {"gateway": root.id}
     for component in ["controller", *sorted(components - {"gateway", "controller"})]:
         info = _device_info(coordinator, api, component)

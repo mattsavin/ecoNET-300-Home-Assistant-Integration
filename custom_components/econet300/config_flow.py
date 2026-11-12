@@ -20,6 +20,10 @@ from .common import AuthError
 from .const import (
     API_REG_PARAMS_DATA_URI,
     API_REG_PARAMS_URI,
+    BUFFER_PRESENCE_ABSENT,
+    BUFFER_PRESENCE_PRESENT,
+    BUFFER_PRESENCE_UNKNOWN,
+    CONF_BUFFER_PRESENCE,
     CONF_CUSTOM_ENTITIES,
     CONF_DEVICE_GROUPING,
     CONF_ENTRY_DESCRIPTION,
@@ -344,6 +348,16 @@ class EconetOptionsFlowHandler(OptionsFlow):
                         DEVICE_GROUPING_SPLIT: "Split (separate devices)",
                         DEVICE_GROUPING_SINGLE: "Single (one merged device)",
                         DEVICE_GROUPING_COMPONENTS: "Heat pump components (opt-in)",
+                    }
+                ),
+                vol.Required(
+                    CONF_BUFFER_PRESENCE,
+                    default=options.get(CONF_BUFFER_PRESENCE, BUFFER_PRESENCE_UNKNOWN),
+                ): vol.In(
+                    {
+                        BUFFER_PRESENCE_UNKNOWN: "Unknown (keep existing layout)",
+                        BUFFER_PRESENCE_PRESENT: "Separate buffer group",
+                        BUFFER_PRESENCE_ABSENT: "No separate buffer group",
                     }
                 ),
             }

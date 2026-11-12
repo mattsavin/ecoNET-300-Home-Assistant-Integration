@@ -365,6 +365,7 @@ class Econet300Api:
         self._model_id = "default-model-id"
         self._sw_revision = "default-sw-revision"
         self._hw_version = "default-hw-version"
+        self.reg_params_schema: dict[str, Any] | None = None
 
     @classmethod
     async def create(cls, client: EconetClient, cache: MemCache) -> "Econet300Api":
@@ -671,9 +672,12 @@ class Econet300Api:
     async def fetch_reg_params(self) -> dict[str, Any] | None:
         """Fetch and return the regParams data from ip/econet/regParams endpoint."""
         _LOGGER.debug("Calling fetch_reg_params method")
-        regParams = await self._fetch_api_data_by_key(
-            API_REG_PARAMS_URI, API_REG_PARAMS_PARAM_DATA
-        )
+        response = await self._fetch_api_data_by_key(API_REG_PARAMS_URI)
+        if not isinstance(response, dict):
+            return None
+        schema = response.get("schemaParams")
+        self.reg_params_schema = schema if isinstance(schema, dict) else None
+        regParams = response.get(API_REG_PARAMS_PARAM_DATA)
         _LOGGER.debug(
             "Fetched regParams: type=%s, count=%d",
             type(regParams).__name__,
