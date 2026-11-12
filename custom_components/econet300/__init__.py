@@ -32,6 +32,7 @@ from .common_functions import (
     summarize_schedule_slots,
 )
 from .const import (
+    BUFFER_PRESENCE_ABSENT,
     DEVICE_CLASS_FUEL_METER,
     DOMAIN,
     GHOST_DEVICE_SUFFIXES,
@@ -46,7 +47,7 @@ from .const import (
     SERVICE_FUEL_SENSOR,
     SERVICE_GET_SCHEDULE,
 )
-from .device_grouping import async_setup_component_devices
+from .device_grouping import _identifier, async_setup_component_devices
 from .entity import (
     HA_SUPPORTS_VIA_DEVICE_ID,
     _main_device_info,
@@ -385,13 +386,23 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_remove_config_entry_device(
     hass: HomeAssistant, config_entry: ConfigEntry, device_entry: dr.DeviceEntry
 ) -> bool:
-    """Allow deleting an ecoSTER device only when its slot has no panel."""
+    """Allow removing disconnected panels and empty, excluded buffer groups."""
     entry_data = hass.data.get(DOMAIN, {}).get(config_entry.entry_id)
     if not entry_data:
         return False
 
     uid = entry_data[SERVICE_API].uid
-    coordinator_data = entry_data[SERVICE_COORDINATOR].data
+    coordinator = entry_data[SERVICE_COORDINATOR]
+    coordinator_data = coordinator.data
+    if (DOMAIN, _identifier(uid, "buffer")) in device_entry.identifiers:
+        return (
+            coordinator.component_device_tree is True
+            and coordinator.buffer_presence == BUFFER_PRESENCE_ABSENT
+            and "buffer" not in coordinator.component_device_ids
+            and not er.async_entries_for_device(
+                er.async_get(hass), device_entry.id, include_disabled_entities=True
+            )
+        )
     for ecoster_num in range(1, NUMBER_OF_AVAILABLE_ECOSTERS + 1):
         identifier = ecoster_device_identifier(uid, ecoster_num)
         if (DOMAIN, identifier) in device_entry.identifiers:

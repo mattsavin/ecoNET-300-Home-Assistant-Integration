@@ -51,7 +51,8 @@ choice. See [Device settings](CONFIGURATION.md#device-settings) to enable it and
 - The root and existing component device entries are not deleted. Devices already discovered are retained
   across transient disconnections. Returning to Single leaves unused component entries rather than deleting them.
 - A buffer explicitly excluded from grouping no longer owns entities in component mode; its entities are routed
-  to the controller without changing unique IDs. The old device remains in the registry for manual review.
+  to the controller without changing unique IDs. The old device remains in the registry for manual review;
+  it may be deleted from the integration page after all its entities, including disabled ones, have moved.
 - Automations are **not rewritten automatically**. Entity-targeted references retain their entity IDs, but
   device- or area-targeted references must be reviewed in both directions.
 - The DHW and buffer groups reuse `<uid>-huw` and `<uid>-buffer` as ordinary service-type devices on all

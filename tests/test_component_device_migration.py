@@ -14,7 +14,10 @@ from homeassistant.helpers.storage import Store
 import pytest
 import pytest_asyncio
 
-from custom_components.econet300 import device_grouping
+from custom_components.econet300 import (
+    async_remove_config_entry_device,
+    device_grouping,
+)
 from custom_components.econet300.common import (
     EconetDataCoordinator,
     build_edit_param_catalog,
@@ -24,6 +27,8 @@ from custom_components.econet300.const import (
     DEVICE_GROUPING_SINGLE,
     DEVICE_GROUPING_SPLIT,
     DOMAIN,
+    SERVICE_API,
+    SERVICE_COORDINATOR,
 )
 from custom_components.econet300.number import EditParamNumber
 from custom_components.econet300.sensor import (
@@ -235,6 +240,67 @@ async def test_confirmed_no_buffer_moves_entities_without_deleting_device(migrat
     assert updated.area_id == original.area_id
     assert updated.device_id == coordinator.component_device_ids["controller"]
     assert migration.devices.async_get(old.id) is not None
+
+
+@pytest.mark.asyncio
+async def test_empty_excluded_buffer_can_be_removed(migration):
+    """Allow removal only after the buffer group is excluded and empty."""
+    old = migration.devices.async_get_or_create(
+        config_entry_id=migration.entry.entry_id,
+        identifiers={(DOMAIN, f"{migration.api.uid}-buffer")},
+        name="Buffer",
+    )
+    coordinator = _coordinator(migration, buffer_presence="absent")
+    await device_grouping.async_setup_component_devices(
+        migration.hass, migration.entry, coordinator, migration.api
+    )
+    migration.hass.data[DOMAIN] = {
+        migration.entry.entry_id: {
+            SERVICE_API: migration.api,
+            SERVICE_COORDINATOR: coordinator,
+        }
+    }
+    assert await async_remove_config_entry_device(migration.hass, migration.entry, old)
+    migration.entities.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        "remaining-buffer-entity",
+        config_entry=migration.entry,
+        device_id=old.id,
+        disabled_by=er.RegistryEntryDisabler.USER,
+    )
+    assert not await async_remove_config_entry_device(
+        migration.hass, migration.entry, old
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("mode", "presence"),
+    [
+        ("components", "present"),
+        ("components", "unknown"),
+        ("single", "absent"),
+        ("split", "absent"),
+    ],
+)
+async def test_buffer_removal_rejected_when_not_excluded(migration, mode, presence):
+    """Keep legitimate or legacy buffers even if they have no entities."""
+    old = migration.devices.async_get_or_create(
+        config_entry_id=migration.entry.entry_id,
+        identifiers={(DOMAIN, f"{migration.api.uid}-buffer")},
+        name="Buffer",
+    )
+    coordinator = _coordinator(migration, mode, presence)
+    migration.hass.data[DOMAIN] = {
+        migration.entry.entry_id: {
+            SERVICE_API: migration.api,
+            SERVICE_COORDINATOR: coordinator,
+        }
+    }
+    assert not await async_remove_config_entry_device(
+        migration.hass, migration.entry, old
+    )
 
 
 @pytest.mark.asyncio
