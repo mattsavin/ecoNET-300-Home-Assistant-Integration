@@ -86,7 +86,7 @@ ENTITY_SENSOR_DEVICE_CLASS_MAP: dict[str, _SensorDeviceClass | None] = {
     "TempCWU": _SensorDeviceClass.TEMPERATURE,
     "TempBuforDown": _SensorDeviceClass.TEMPERATURE,
     "heatingUpperTemp": _SensorDeviceClass.TEMPERATURE,
-    # Circuit1thermostat is room temperature on ecoMAX360i (Grant smart thermostat).
+    # Circuit1thermostat is room temperature on ecoMAX360i.
     "Circuit1thermostat": _SensorDeviceClass.TEMPERATURE,
     "flapValveStates": _SensorDeviceClass.ENUM,
     "HeatDemanded": _SensorDeviceClass.ENUM,
