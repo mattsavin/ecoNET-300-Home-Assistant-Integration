@@ -350,3 +350,28 @@ async def test_hvac_action_heating_when_compressor_active():
     assert climate.hvac_action == HVACAction.HEATING
     assert climate.extra_state_attributes["compressor_frequency_hz"] == 45.0
     assert climate.extra_state_attributes["diverter_valve"] == "central_heating"
+
+
+@pytest.mark.asyncio
+async def test_hvac_action_heating_during_post_dhw_circulation():
+    """hvac_action is HEATING when compressor is off but warm water circulates post-DHW."""
+    from homeassistant.components.climate import HVACAction
+    from custom_components.econet300.climate import EconetCircuitClimate
+
+    coordinator = make_coordinator(work_state=3, room_temp=20.5)
+    coordinator.data["informationParams"] = {
+        "26": [False, [["1", 0, 1]]],
+        "14": [True, [["42.5", 1, 0]]],
+        "15": [True, [["35.0", 1, 0]]],
+        "231": [True, [["15.2", 30, 0]]],
+    }
+    coordinator.data["regParams"]["flapValveStates"] = 0
+    coordinator.data["regParams"]["AxenCompressorFreq"] = 0
+    api = MagicMock(uid="test-controller")
+    climate = EconetCircuitClimate(coordinator, api)
+
+    assert climate.hvac_action == HVACAction.HEATING
+    assert climate.extra_state_attributes["is_heating"] is True
+    assert climate.extra_state_attributes["flow_temperature"] == 42.5
+    assert climate.extra_state_attributes["return_temperature"] == 35.0
+    assert climate.extra_state_attributes["flow_rate_lmin"] == 15.2

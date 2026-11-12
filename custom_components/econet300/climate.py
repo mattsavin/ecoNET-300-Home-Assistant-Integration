@@ -44,6 +44,16 @@ def _finite_number(value: Any) -> float | None:
     return numeric if numeric is not None and math.isfinite(numeric) else None
 
 
+def _info_param_number(data: dict[str, Any], key: str) -> float | None:
+    """Extract a numeric value from informationParams if present."""
+    info = (data.get("informationParams") or {}).get(key)
+    if isinstance(info, list) and len(info) > 1:
+        inner = info[1]
+        if isinstance(inner, list) and len(inner) > 0 and len(inner[0]) > 0:
+            return _finite_number(inner[0][0])
+    return None
+
+
 def _valid_circuit_param(data: dict[str, Any], param_id: str, name: str) -> bool:
     """Validate that a required circuit parameter exists and is editable."""
     entry = (data.get("editParams") or {}).get(param_id)
@@ -172,25 +182,56 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
 
     @property
     def _is_heating_active(self) -> bool:
-        """Return True if heat is actively demanded or being provided."""
-        data = self.coordinator.data or {}
+        """Return True if heat is actively demanded or being provided to Circuit 1."""
+        if self.hvac_mode == HVACMode.OFF:
+            return False
 
-        # 1. Check HeatDemanded in informationParams (param 26)
+        data = self.coordinator.data or {}
+        reg = data.get("regParams") or {}
+
+        # 1. Thermostat demand signal (param 26: 0 = "heat", 1 = "off")
         info_26 = (data.get("informationParams") or {}).get("26")
         if isinstance(info_26, list) and len(info_26) > 1:
             inner = info_26[1]
             if isinstance(inner, list) and len(inner) > 0 and len(inner[0]) > 0:
                 if str(inner[0][0]) == "0":
                     return True
-                if str(inner[0][0]) == "1":
-                    return False
 
-        # 2. Check flapValveStates and compressor frequency in regParams
-        reg = data.get("regParams") or {}
+        # Check 3-way diverter valve (0 = central heating, 3 = domestic hot water)
         flap = reg.get("flapValveStates")
-        comp = _finite_number(reg.get("AxenCompressorFreq"))
-        if flap == 0 and comp is not None and comp > 0:
+        if flap == 3:
+            # Valve is actively routed to DHW cylinder recharge
+            return False
+
+        # 2. Positive thermal power delivered to heating circuit (> 0 kW)
+        thermal_power = _info_param_number(data, "212")
+        if thermal_power is not None and thermal_power > 0.05:
             return True
+
+        # 3. Heat pump compressor running on central heating
+        comp = _finite_number(reg.get("AxenCompressorFreq"))
+        if comp is not None and comp > 0:
+            return True
+
+        # 4. Circulation pump running while circulating water delivers heat
+        # (e.g. post-DHW recharge residual heat dissipation or buffer circulation)
+        flow_rate = _info_param_number(data, "231")
+        pump_running = (flow_rate is not None and flow_rate > 0) or (
+            reg.get("AxenUpperPump") not in (None, 0, "0", "off")
+        )
+
+        if pump_running:
+            flow_temp = _info_param_number(data, "14")
+            ret_temp = _info_param_number(data, "15")
+            room_temp = self.current_temperature
+
+            if flow_temp is not None:
+                # Flow is warmer than return (positive delta-T heat emission)
+                if ret_temp is not None and flow_temp > ret_temp + 0.3:
+                    return True
+                # Or water is significantly warmer than room temperature
+                if room_temp is not None and flow_temp > room_temp + 2.0:
+                    return True
 
         return False
 
@@ -231,6 +272,10 @@ class EconetCircuitClimate(CoordinatorEntity[EconetDataCoordinator], ClimateEnti
             "is_heating": self._is_heating_active,
             "compressor_frequency_hz": _finite_number(reg.get("AxenCompressorFreq")),
             "diverter_valve": flap_str,
+            "flow_temperature": _info_param_number(data, "14"),
+            "return_temperature": _info_param_number(data, "15"),
+            "thermal_power_kw": _info_param_number(data, "212"),
+            "flow_rate_lmin": _info_param_number(data, "231"),
         }
 
     @property
