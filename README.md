@@ -29,9 +29,10 @@ The **ecoNET300 Home Assistant Integration** allows local control and monitoring
 - **Easy Configuration**: Integrate directly via Home Assistant UI
 - **Dynamic Entity Creation**: 165+ entities auto-discovered from your boiler's menu (v1.2.0+)
 - **Boiler Control**: Turn your boiler ON/OFF directly from Home Assistant
+- **ecoMAX360i Climate**: Circuit 1 room temperature, Day/Night targets and schedule control; On resumes the schedule and Off stops circuit heating ([details](docs/ENTITIES.md#climate))
 - **Real-time Monitoring**: Monitor temperatures, fuel levels, and system status
 - **Comprehensive API Access**: Access to 80+ API endpoints
-- **Multiple Entity Types**: Sensors, Binary Sensors, Calendars, Events, Switches, Select, and Number entities
+- **Multiple Entity Types**: Sensors, Binary Sensors, Calendars, Climate, Events, Switches, Select, and Number entities
 - **Parameter Locking**: Device-side locks reflected in Home Assistant UI
 - **Repair Issues**: Automatic connection failure detection with one-click fix
 - **Diagnostics Support**: Download diagnostics with core API data plus optional RM/`editParams` snapshots (v1.2.5+)
