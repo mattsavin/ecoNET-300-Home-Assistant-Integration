@@ -228,6 +228,32 @@ class TestBuildEditParamCatalog:
         assert item["kind"] == "switch"
         assert item["expose_number"] is True
 
+    @pytest.mark.parametrize(
+        ("pid", "name", "value"),
+        [
+            ("1133", "AxenWorkState", 1),
+            ("5", "FactorySetup", 0),
+            ("115", "HDWStartOneLoading", 0),
+            ("391", "ModuleBCOnOff", 0),
+            ("920", "EreaseEnergy", 0),
+            ("1270", "Axenregister2102RW", 0),
+            ("1272", "Axenregister2104RW", 0),
+            ("1369", "Axenregister2150RWreboot_unit", 0),
+            ("1385", "HPSMSett", 0),
+            ("1429", "ScreedDryingSettings", 0),
+            ("1450", "ImmersionBoostsettings", 1),
+            ("10041", "kasowanie_alarmow", 0),
+        ],
+    )
+    def test_known_switches_do_not_expose_duplicate_value_number(
+        self, pid, name, value
+    ):
+        """Known binary switches must not create redundant _value number entities."""
+        raw = {"data": {pid: {"edit": True, "name": name, "value": value}}}
+        item = build_edit_param_catalog(raw)[pid]
+        assert item["kind"] == "switch"
+        assert item["expose_number"] is False
+
     def test_skips_non_editable(self):
         raw = {"data": {"50": {"edit": False, "name": "RO", "value": 5}}}
         assert "50" not in build_edit_param_catalog(raw)

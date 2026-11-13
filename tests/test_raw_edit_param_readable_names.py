@@ -124,6 +124,15 @@ def test_number_value_suffix_identity_is_unchanged():
         ("Circuit4MinSetTempRad", "Circuit 4 minimum radiator set temperature"),
         ("Circuit4MaxSetTempRad", "Circuit 4 maximum radiator set temperature"),
         ("Circuit7WorkState", "Circuit 7 operating state"),
+        ("heatersPermTemp", "Heaters permitted temperature"),
+        ("heatersForceTemp", "Heaters forced temperature"),
+        ("AXEN2155uhsPumpManualPreset", "Heat pump water pump manual preset"),
+        ("AXEN_2155-uhsPumpManualPreset", "Heat pump water pump manual preset"),
+        ("Axenregister2150RWreboot_unit", "Reboot heat pump outdoor unit"),
+        ("AXEN_REGISTER_2100_RW", "Outdoor unit mode (register 2100)"),
+        ("axenRegister2101RW", "Outdoor unit run request"),
+        ("HoldingRegister_6050", "Heat pump standby pump speed"),
+        ("H_FAN_SPEED_0_6244", "Heat pump fan speed step 0"),
     ],
 )
 def test_observed_typos_and_squashed_tokens_are_cleaned(raw_key, expected):

@@ -6,6 +6,7 @@ import asyncio
 import copy
 from datetime import timedelta
 import logging
+import re
 import time
 from typing import Any
 
@@ -112,6 +113,25 @@ def _index_menu_limits(
         if native_max > native_min and native_step > 0:
             limits.setdefault(str(item[0]), (native_min, native_max, native_step))
     return limits
+
+
+_BINARY_SWITCH_PARAM_KEYS = frozenset(
+    {
+        "axenregister2102rw",
+        "axenregister2104rw",
+        "axenregister2150rwrebootunit",
+        "axenworkstate",
+        "ereaseenergy",
+        "eraseenergy",
+        "factorysetup",
+        "hdwstartoneloading",
+        "hpsmsett",
+        "immersionboostsettings",
+        "kasowaniealarmow",
+        "modulebconoff",
+        "screeddryingsettings",
+    }
+)
 
 
 def _guess_step(*numbers: float | None) -> float:
@@ -236,7 +256,8 @@ def build_edit_param_catalog(
                 options = [str(v) for v in range(int(native_min), int(native_max) + 1)]
             elif value in (0, 1):
                 kind = "switch"
-                expose_number = True
+                normalized_name = re.sub(r"[^a-z0-9]", "", lname)
+                expose_number = normalized_name not in _BINARY_SWITCH_PARAM_KEYS
                 native_min = 0.0
                 native_max = max(10.0, float(value))
                 native_step = 1.0

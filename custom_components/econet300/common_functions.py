@@ -412,6 +412,11 @@ _EDIT_PARAM_WORD_MAP = {
     "valveopeningtime": "valve opening time",
 }
 
+_NORMALIZED_EDIT_PARAM_FRIENDLY_NAMES: dict[str, str] = {
+    re.sub(r"[^a-z0-9]", "", key.lower()): value
+    for key, value in EDIT_PARAM_FRIENDLY_NAMES.items()
+}
+
 
 def friendly_edit_param_name(name: str) -> str:
     """Return a readable display name for a raw editParams parameter key."""
@@ -420,6 +425,11 @@ def friendly_edit_param_name(name: str) -> str:
     explicit = EDIT_PARAM_FRIENDLY_NAMES.get(name)
     if explicit is not None:
         return explicit
+    normalized = _NORMALIZED_EDIT_PARAM_FRIENDLY_NAMES.get(
+        re.sub(r"[^a-z0-9]", "", name.lower())
+    )
+    if normalized is not None:
+        return normalized
 
     if name.startswith("EPowerWorldRegisters"):
         suffix = name.removeprefix("EPowerWorldRegisters")
