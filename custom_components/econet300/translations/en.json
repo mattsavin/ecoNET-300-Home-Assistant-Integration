@@ -905,7 +905,7 @@
         "name": "Mixer 1 valve % open"
       },
       "ps": {
-        "name": "PS"
+        "name": "Panel software"
       },
       "circuit2thermostat_temp": {
         "name": "Circuit 2 thermostat temp."
@@ -1235,7 +1235,7 @@
         "name": "Actual DHW temp."
       },
       "circuit1_desired_lwt": {
-        "name": "Circuit 1 desired LWT"
+        "name": "Circuit 1 desired leaving water temp."
       },
       "electrical_power": {
         "name": "Electrical power"

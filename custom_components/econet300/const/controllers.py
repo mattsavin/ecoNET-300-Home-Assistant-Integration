@@ -180,11 +180,13 @@ EDIT_PARAMS_DATA_SENSOR_MAP: dict[str, str] = {
 # User-friendly display names for generic editParams controls
 EDIT_PARAM_FRIENDLY_NAMES: Final[dict[str, str]] = {
     "AntifreezeSett": "Antifreeze settings",
+    "AxenWorkState": "Heat pump work state",
     "BuforSETTINGS": "Buffer settings",
     "BuforSetTempDownHist": "Buffer hysteresis",
     "BuforTempStartHydraulic": "Buffer hydraulic start temperature",
     "BuforTempStartHydraulicHist": "Buffer hydraulic start hysteresis",
     "BuforsetPoint": "Buffer target temperature",
+    "CirculationTempStart": "Circulation start temperature",
     "Circuit1BaseTemp": "Circuit 1 base temperature",
     "Circuit1ComfortTemp": "Circuit 1 day temp",
     "Circuit1CurveRadiator": "Circuit 1 heating curve",
@@ -217,8 +219,30 @@ EDIT_PARAM_FRIENDLY_NAMES: Final[dict[str, str]] = {
     "Circuit6EcoTemp": "Circuit 6 night temp",
     "Circuit7ComfortTemp": "Circuit 7 day temp",
     "Circuit7EcoTemp": "Circuit 7 night temp",
+    **{
+        key: label
+        for number in range(4, 8)
+        for key, label in (
+            (f"Circuit{number}BaseTemp", f"Circuit {number} base temperature"),
+            (f"Circuit{number}DownHist", f"Circuit {number} hysteresis"),
+            (
+                f"Circuit{number}MaxSetTempRad",
+                f"Circuit {number} maximum radiator set temperature",
+            ),
+            (
+                f"Circuit{number}MinSetTempRad",
+                f"Circuit {number} minimum radiator set temperature",
+            ),
+            (
+                f"Circuit{number}TempReduction",
+                f"Circuit {number} temperature reduction",
+            ),
+            (f"Circuit{number}WorkState", f"Circuit {number} operating state"),
+        )
+    },
     "EreaseEnergy": "Erase energy",
     "FactorySetup": "Factory setup",
+    "HeatersForceTemp": "Heaters force temperature",
     "HDWLegionDay": "DHW legionella day",
     "HDWLegionHour": "DHW legionella hour",
     "HDWLegionSetPoint": "DHW legionella target temperature",

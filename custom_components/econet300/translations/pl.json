@@ -996,7 +996,7 @@
         "name": "Temperatura zadana termostatu 8"
       },
       "ps": {
-        "name": "PS"
+        "name": "Oprogramowanie panelu"
       },
       "circuit2thermostat_temp": {
         "name": "Temperatura termostatu obwodu 2"

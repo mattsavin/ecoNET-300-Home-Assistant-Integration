@@ -118,6 +118,14 @@ class TestEconetSensorBasic:
         description = create_sensor_entity_description("PS")
         assert description.entity_category == EntityCategory.DIAGNOSTIC
         assert description.state_class is None
+        base = Path(__file__).parents[1] / "custom_components/econet300"
+        for filename in ("strings.json", "translations/en.json"):
+            translations = json.loads((base / filename).read_text())
+            assert translations["entity"]["sensor"]["ps"]["name"] == "Panel software"
+            assert (
+                translations["entity"]["sensor"]["circuit1_desired_lwt"]["name"]
+                == "Circuit 1 desired leaving water temp."
+            )
 
     @pytest.mark.parametrize(
         "key",

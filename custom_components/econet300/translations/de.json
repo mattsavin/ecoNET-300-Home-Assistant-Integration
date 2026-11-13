@@ -905,7 +905,7 @@
         "name": "Mischer 1 Ventil % geöffnet"
       },
       "ps": {
-        "name": "PS"
+        "name": "Panel-Software"
       },
       "circuit2thermostat_temp": {
         "name": "Kreis 2 Thermostat-Temp."
