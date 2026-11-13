@@ -59,7 +59,7 @@ from .const import (
     SERVICE_COORDINATOR,
     UNIT_NAME_TO_HA_UNIT,
 )
-from .device_grouping import edit_param_device_info
+from .device_grouping import edit_param_device_info, filter_selected_circuits
 from .entity import (
     EconetEntity,
     EcoSterEntity,
@@ -1014,6 +1014,7 @@ def _create_regular_entity_by_category(
         api,
     )
 
+    entity._param = param  # noqa: SLF001
     _LOGGER.info(
         "Created number entity: %s (%s) - %s to %s %s",
         param_name,
@@ -1340,7 +1341,9 @@ async def async_setup_entry(
         entities.extend(
             setup_ecoster_number_entities(coordinator, api, entry, async_add_entities)
         )
-        return async_add_entities(entities)
+        return async_add_entities(
+            filter_selected_circuits(entities, coordinator.data or {}, entry.options)
+        )
 
     # Always create basic NUMBER_MAP entities first
     basic_entities = await _create_basic_entities(api, coordinator)
@@ -1398,7 +1401,9 @@ async def async_setup_entry(
             "the legacy NUMBER_MAP entities are not available on your device."
         )
 
-    return async_add_entities(entities)
+    return async_add_entities(
+        filter_selected_circuits(entities, coordinator.data or {}, entry.options)
+    )
 
 
 # =============================================================================
@@ -1629,7 +1634,13 @@ def setup_ecoster_number_entities(
         if added or not (coordinator.data or {}).get("editParamsFull"):
             return
         added = True
-        async_add_entities(create_ecoster_number_entities(coordinator, api))
+        async_add_entities(
+            filter_selected_circuits(
+                create_ecoster_number_entities(coordinator, api),
+                coordinator.data or {},
+                entry.options,
+            )
+        )
 
     entry.async_on_unload(coordinator.async_add_listener(_add_when_loaded))
     return entities

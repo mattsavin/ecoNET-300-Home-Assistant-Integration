@@ -8,7 +8,15 @@ from homeassistant.const import MAJOR_VERSION, MINOR_VERSION
 from homeassistant.helpers import device_registry as dr
 
 from .common_functions import is_ecomax360i_controller
-from .const import BUFFER_PRESENCE_ABSENT, BUFFER_PRESENCE_PRESENT, DOMAIN
+from .const import (
+    API_REG_PARAMS_DATA_URI,
+    API_REG_PARAMS_URI,
+    API_RM_CURRENT_DATA_PARAMS_URI,
+    BUFFER_PRESENCE_ABSENT,
+    BUFFER_PRESENCE_PRESENT,
+    CONF_SELECTED_CIRCUITS,
+    DOMAIN,
+)
 
 
 def _supported(data: dict[str, Any]) -> bool:
@@ -18,6 +26,66 @@ def _supported(data: dict[str, Any]) -> bool:
         is_ecomax360i_controller(system.get("controllerID"))
         and system.get("protocolType") == "gm3_pomp"
     )
+
+
+def circuit_number_for_key(data: dict[str, Any], key: str) -> int | None:
+    """Classify known source keys, without asserting a circuit is configured."""
+    if not isinstance(key, str) or not _supported(data):
+        return None
+    match = re.match(r"(?:Circuit|TempCircuit)([1-7])(?!\d)", key, re.IGNORECASE)
+    if match:
+        return int(match[1])
+    if key in ("TempClutch", "HeatDemanded"):
+        return 1
+    return None
+
+
+def filter_selected_circuits(
+    entities: list, data: dict[str, Any], options: Any
+) -> list:
+    """Filter only entities whose original protocol source identifies a circuit."""
+    selected = options.get(CONF_SELECTED_CIRCUITS)
+    if not isinstance(selected, list) or not _supported(data):
+        return entities
+
+    def source(entity: Any) -> str:
+        param = getattr(entity, "_param", None)
+        if isinstance(param, dict):
+            return param.get("name") or param.get("key") or ""
+        key = getattr(entity, "_param_key", None)
+        if isinstance(key, str):
+            entity_source = getattr(entity, "_source", None)
+            if entity_source == API_REG_PARAMS_URI:
+                return key if key in (data.get("regParams") or {}) else ""
+            if entity_source in (
+                API_REG_PARAMS_DATA_URI,
+                API_RM_CURRENT_DATA_PARAMS_URI,
+            ):
+                metadata = (data.get("rmData") or {}).get("currentDataParams") or {}
+                info = metadata.get(key) if isinstance(metadata, dict) else None
+                return info.get("name") or "" if isinstance(info, dict) else ""
+            return ""
+        pid = getattr(entity, "_pid", None)
+        if isinstance(pid, str):
+            for catalog in ("editParamCatalog", "editParams"):
+                info = (data.get(catalog) or {}).get(pid)
+                if isinstance(info, dict):
+                    return info.get("name") or ""
+            return ""
+        description = getattr(entity, "entity_description", None)
+        key = getattr(description, "key", None)
+        if isinstance(key, str) and (
+            key in (data.get("regParams") or {}) or key in (data.get("sysParams") or {})
+        ):
+            return key
+        return ""
+
+    result = []
+    for entity in entities:
+        circuit = circuit_number_for_key(data, source(entity))
+        if circuit is None or str(circuit) in selected:
+            result.append(entity)
+    return result
 
 
 def _temperature(value: Any) -> bool:

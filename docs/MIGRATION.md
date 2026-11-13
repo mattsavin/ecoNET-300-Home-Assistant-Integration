@@ -28,6 +28,12 @@ is preserved. Only ecoMAX360i controllers using `gm3_pomp` support the new **Hea
 choice. See [Device settings](CONFIGURATION.md#device-settings) to enable it and
 [component ownership](ENTITIES.md#heat-pump-component-ownership) for capability gates and limitations.
 
+Existing installations default to all heating circuits selected. On supported ecoMAX360i `gm3_pomp`
+controllers, **Configure → Device settings → Heating circuits to expose** can exclude identifiable entities
+for individual circuits in any grouping mode. Unknown or ambiguous sources remain. Exclusion does not delete registry entries, so
+previously created entities may become unavailable. Check automations and dashboards, and re-select a circuit
+to expose its supported entities again. See [Heating circuit selection](CONFIGURATION.md#heating-circuit-selection).
+
 ### Before opting in or changing back
 
 1. Record the current device names, areas and any automations/scripts that target devices or areas.

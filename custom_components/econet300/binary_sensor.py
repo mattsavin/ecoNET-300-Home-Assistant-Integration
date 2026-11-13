@@ -39,6 +39,7 @@ from .const import (
     SERVICE_API,
     SERVICE_COORDINATOR,
 )
+from .device_grouping import filter_selected_circuits
 from .entity import (
     EconetEntity,
     EcoSterEntity,
@@ -669,5 +670,7 @@ async def async_setup_entry(
         entities.extend(create_custom_binary_sensors(coordinator, api, custom_cfg))
 
     _LOGGER.info("Total binary sensor entities: %d", len(entities))
-    async_add_entities(entities)
+    async_add_entities(
+        filter_selected_circuits(entities, coordinator.data or {}, entry.options)
+    )
     return True

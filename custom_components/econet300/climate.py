@@ -22,9 +22,15 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from .api import Econet300Api
 from .common import EconetDataCoordinator
 from .common_functions import is_ecomax360i_controller, round_to_step
-from .const import DOMAIN, SERVICE_API, SERVICE_COORDINATOR, _numeric_or_none
+from .const import (
+    CONF_SELECTED_CIRCUITS,
+    DOMAIN,
+    SERVICE_API,
+    SERVICE_COORDINATOR,
+    _numeric_or_none,
+)
 from .const.processors import TEMP_NOT_CONNECTED_VALUE
-from .device_grouping import component_device_info
+from .device_grouping import circuit_number_for_key, component_device_info
 from .entity import _main_device_info
 
 CIRCUIT1_WORK_STATE_PARAM = "236"
@@ -423,4 +429,13 @@ async def async_setup_entry(
 
     if _climate_platform_supported(data):
         api: Econet300Api = services[SERVICE_API]
-        async_add_entities([EconetCircuitClimate(coordinator, api)])
+        entities = [EconetCircuitClimate(coordinator, api)]
+        circuit = circuit_number_for_key(data, "Circuit1WorkState")
+        selected = entry.options.get(CONF_SELECTED_CIRCUITS)
+        if (
+            circuit is not None
+            and isinstance(selected, list)
+            and str(circuit) not in selected
+        ):
+            entities = []
+        async_add_entities(entities)

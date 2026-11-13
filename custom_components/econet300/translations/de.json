@@ -121,10 +121,12 @@
         "description": "Wählen Sie, wie Entitäten zu Geräten gruppiert werden. Split (Standard) behält die bisherigen Komponentengruppen (Heizkessel, Mischer, Lambda, ecoSTER usw.) bei. Single fasst alles zu einem Gerät zusammen. Heat pump components (opt-in) trennt auf Wunsch unterstützte physische Geräte und logische Heizungsgruppen, ausschließlich bei ecoMAX360i-Steuerungen mit gm3_pomp. Entitäts-IDs bleiben erhalten, aber prüfen Sie beim Aktivieren und beim Zurückwechseln gerätebezogene Automatisierungen und Bereichszuordnungen; Automatisierungen werden nicht automatisch umgeschrieben.",
         "data": {
           "device_grouping": "Gerätegruppierung",
-          "buffer_presence": "Pufferspeicher-Gerätegruppierung"
+          "buffer_presence": "Pufferspeicher-Gerätegruppierung",
+          "selected_circuits": "Anzuzeigende Heizkreise"
         },
         "data_description": {
-          "device_grouping": "Split, Single oder Heat pump components (opt-in). Der Komponentenmodus ändert die Zuordnung der Entitäten und die Gerätehierarchie, obwohl das ursprüngliche Gateway-Gerät erhalten bleibt. Prüfen Sie in beiden Richtungen gerätebezogene Automatisierungen und Bereichszuordnungen; automatisch erzeugte Anzeigenamen können sich ändern."
+          "device_grouping": "Split, Single oder Heat pump components (opt-in). Der Komponentenmodus ändert die Zuordnung der Entitäten und die Gerätehierarchie, obwohl das ursprüngliche Gateway-Gerät erhalten bleibt. Prüfen Sie in beiden Richtungen gerätebezogene Automatisierungen und Bereichszuordnungen; automatisch erzeugte Anzeigenamen können sich ändern.",
+          "selected_circuits": "Wählen Sie für unterstützte ecoMAX360i-Steuerungen mit gm3_pomp die Heizkreise 1–7. Standardmäßig sind alle ausgewählt; eine leere Auswahl schließt zuordenbare Heizkreis-Entitäten aus. Entitäten mit unbekannter oder mehrdeutiger Quelle bleiben erhalten. Ausgeschlossene Entitäten und Geräte bleiben im Register und Entitäten können nicht verfügbar werden. Erneutes Auswählen stellt den Heizkreis wieder her."
         }
       },
       "polling_settings": {

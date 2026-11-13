@@ -31,6 +31,7 @@ from .const import (
     CONF_POLL_EDIT_PARAMS,
     CONF_POLL_REG_PARAMS,
     CONF_POLL_SYS_PARAMS,
+    CONF_SELECTED_CIRCUITS,
     CUSTOM_ENTITY_COMPONENTS,
     CUSTOM_ENTITY_TYPE_BINARY_SENSOR,
     CUSTOM_ENTITY_TYPE_SENSOR,
@@ -45,6 +46,7 @@ from .const import (
     DEVICE_GROUPING_SINGLE,
     DEVICE_GROUPING_SPLIT,
     DOMAIN,
+    NUMBER_OF_AVAILABLE_MIXERS,
     SERVICE_API,
     SERVICE_COORDINATOR,
     STATIC_CDP_IDS,
@@ -338,6 +340,7 @@ class EconetOptionsFlowHandler(OptionsFlow):
             return self.async_create_entry(title="", data=new_options)
 
         options = dict(self.config_entry.options)
+        circuits = [str(number) for number in range(1, NUMBER_OF_AVAILABLE_MIXERS + 2)]
         schema = vol.Schema(
             {
                 vol.Required(
@@ -360,6 +363,10 @@ class EconetOptionsFlowHandler(OptionsFlow):
                         BUFFER_PRESENCE_ABSENT: "No separate buffer group",
                     }
                 ),
+                vol.Required(
+                    CONF_SELECTED_CIRCUITS,
+                    default=options.get(CONF_SELECTED_CIRCUITS, circuits),
+                ): cv.multi_select(circuits),
             }
         )
         return self.async_show_form(step_id="device_settings", data_schema=schema)

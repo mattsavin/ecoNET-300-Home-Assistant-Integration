@@ -34,7 +34,7 @@ from .const import (
     SERVICE_API,
     SERVICE_COORDINATOR,
 )
-from .device_grouping import edit_param_device_info
+from .device_grouping import edit_param_device_info, filter_selected_circuits
 from .entity import EconetEntity, get_device_info_for_component
 
 _LOGGER = logging.getLogger(__name__)
@@ -562,7 +562,9 @@ async def async_setup_entry(
     entities.extend(_create_edit_param_switches(coordinator, api))
 
     _LOGGER.info("Adding %d total switch entities", len(entities))
-    async_add_entities(entities)
+    async_add_entities(
+        filter_selected_circuits(entities, coordinator.data or {}, entry.options)
+    )
 
 
 # =============================================================================

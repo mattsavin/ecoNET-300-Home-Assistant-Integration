@@ -90,6 +90,7 @@ from .const import (
     STATE_CLASS_MAP,
     UNIT_NAME_TO_HA_UNIT,
 )
+from .device_grouping import filter_selected_circuits
 from .entity import (
     EconetEntity,
     EcoSterEntity,
@@ -1729,6 +1730,8 @@ async def async_setup_entry(
         )
 
     # Add entities to Home Assistant
-    async_add_entities(entities)
+    async_add_entities(
+        filter_selected_circuits(entities, coordinator.data or {}, entry.options)
+    )
     _LOGGER.info("Entities successfully added to Home Assistant")
     return True

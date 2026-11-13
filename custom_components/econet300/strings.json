@@ -174,10 +174,12 @@
         "description": "Choose how entities are grouped into devices. Split (default) keeps the existing component groups (boiler, mixers, lambda, ecoSTER, etc.). Single merges everything into one device. Heat pump components (opt-in) separates supported physical devices and logical heating groups on ecoMAX360i controllers using gm3_pomp only. Entity IDs are preserved, but review device-targeted automations and areas when opting in or changing back; automations are not rewritten automatically.",
         "data": {
           "device_grouping": "Device grouping",
-          "buffer_presence": "Buffer device grouping"
+          "buffer_presence": "Buffer device grouping",
+          "selected_circuits": "Heating circuits to expose"
         },
         "data_description": {
-          "device_grouping": "Split, Single or Heat pump components (opt-in). Component mode changes device membership and hierarchy, even though the original gateway device is retained. Review device-targeted automations and areas in both directions; generated friendly names may change."
+          "device_grouping": "Split, Single or Heat pump components (opt-in). Component mode changes device membership and hierarchy, even though the original gateway device is retained. Review device-targeted automations and areas in both directions; generated friendly names may change.",
+          "selected_circuits": "For supported ecoMAX360i gm3_pomp controllers, choose circuits 1–7. All are selected by default; clear all to exclude identifiable circuit entities. Entities with unknown or ambiguous sources remain. Excluded entities and devices remain in the registry and entities may become unavailable. Re-select a circuit to restore it."
         }
       }
     },

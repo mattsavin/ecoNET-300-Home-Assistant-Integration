@@ -71,6 +71,16 @@ In the same menu, choose **Separate buffer group** or **No separate buffer group
 device grouping, not the controller's hydraulic configuration, and does not establish that any
 buffer-labelled readings correspond to a dedicated sensor.
 
+### Heating circuit selection
+
+For supported ecoMAX360i controllers using `gm3_pomp`, **Heating circuits to expose** selects circuits
+1–7 independently of device grouping. All circuits are selected by default, including on existing installs.
+An empty selection excludes entities that can be identified as belonging to a circuit; entities with unknown or
+ambiguous sources remain. The selection does not detect whether a circuit is physically present.
+Save to reload the integration. Excluded circuit entities and devices remain in the registry; existing entities
+may become unavailable. Re-select a circuit to expose its supported entities again. Check automations and
+dashboards that use excluded entities, and review any unused registry entries before removing them manually.
+
 ### Heat pump component layout
 
 The existing ecoNET300 device remains the gateway. A separate PLUM controller owns controller diagnostics

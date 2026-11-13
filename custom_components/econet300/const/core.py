@@ -153,6 +153,7 @@ STALE_AFTER_SECONDS = 600
 # (split) or merged under a single PLUM ecoNET300 device (single).
 CONF_DEVICE_GROUPING = "device_grouping"
 CONF_BUFFER_PRESENCE = "buffer_presence"
+CONF_SELECTED_CIRCUITS = "selected_circuits"
 BUFFER_PRESENCE_UNKNOWN = "unknown"
 BUFFER_PRESENCE_PRESENT = "present"
 BUFFER_PRESENCE_ABSENT = "absent"
