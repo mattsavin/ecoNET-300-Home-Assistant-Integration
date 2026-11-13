@@ -18,6 +18,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .api import Econet300Api
+from .climate import CIRCUIT1_WORK_STATE_PARAM
 from .common import EconetDataCoordinator
 from .common_functions import (
     camel_to_snake,
@@ -885,8 +886,26 @@ class EditParamSelect(CoordinatorEntity[EconetDataCoordinator], SelectEntity):
 
         self._attr_device_info = _device_info(api)
 
-        options = info.get("options") or []
-        self._attr_options = [str(o) for o in options]
+    def _option_mapping(self) -> dict[str, str]:
+        """Map advertised numeric values to their current display labels."""
+        data = self.coordinator.data or {}
+        info = (data.get("editParamCatalog") or {}).get(self._pid, {})
+        options = [str(option) for option in (info.get("options") or [])]
+        sys_params = data.get("sysParams") or {}
+        if (
+            self._pid == CIRCUIT1_WORK_STATE_PARAM
+            and info.get("name") == "Circuit1WorkState"
+            and is_ecomax360i_controller(sys_params.get("controllerID"))
+            and sys_params.get("protocolType") == "gm3_pomp"
+        ):
+            labels = {"0": "Off", "1": "Day/Comfort", "2": "Night/Eco", "3": "Schedule"}
+            return {option: labels.get(option, option) for option in options}
+        return {option: option for option in options}
+
+    @property
+    def options(self) -> list[str]:
+        """Return the current advertised options."""
+        return list(self._option_mapping().values())
 
     @property
     def unique_id(self) -> str | None:
@@ -903,10 +922,13 @@ class EditParamSelect(CoordinatorEntity[EconetDataCoordinator], SelectEntity):
         if val is None:
             return None
         try:
-            sval = str(int(val))
-        except (TypeError, ValueError):
+            numeric = float(val)
+            if not numeric.is_integer():
+                return None
+            sval = str(int(numeric))
+        except (TypeError, ValueError, OverflowError):
             return None
-        return sval if sval in (self.options or []) else None
+        return self._option_mapping().get(sval)
 
     @property
     def available(self) -> bool:
@@ -919,9 +941,19 @@ class EditParamSelect(CoordinatorEntity[EconetDataCoordinator], SelectEntity):
 
     async def async_select_option(self, option: str) -> None:
         """Write the selected option back to the controller."""
+        data = self.coordinator.data or {}
+        entry = (data.get("editParams") or {}).get(self._pid)
+        if not isinstance(entry, dict) or not entry.get("edit") or entry.get("locked"):
+            raise HomeAssistantError(f"Parameter {self._pid} is not editable")
+        mapping = self._option_mapping()
+        raw_option = next(
+            (raw for raw, label in mapping.items() if label == option), None
+        )
+        if raw_option is None:
+            raise HomeAssistantError(f"Invalid option '{option}' for param {self._pid}")
         try:
-            value = int(option)
-        except ValueError as e:
+            value = int(raw_option)
+        except (TypeError, ValueError) as e:
             raise HomeAssistantError(
                 f"Invalid option '{option}' for param {self._pid}"
             ) from e

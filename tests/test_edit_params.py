@@ -261,12 +261,144 @@ def _catalog() -> dict:
 
 def _coordinator(catalog: dict) -> MagicMock:
     coordinator = MagicMock()
-    coordinator.data = {"editParamCatalog": catalog}
+    coordinator.data = {
+        "editParamCatalog": catalog,
+        "editParams": {pid: {"edit": True} for pid in catalog},
+    }
     return coordinator
+
+
+def _circuit_select(load_fixture):
+    catalog = build_edit_param_catalog(load_fixture("ecoMAX360i", "editParams.json"))
+    coordinator = _coordinator(catalog)
+    coordinator.data["sysParams"] = load_fixture("ecoMAX360i", "sysParams.json")
+    coordinator.async_request_refresh = AsyncMock()
+    api = _make_api()
+    api.set_param = AsyncMock(return_value=True)
+    return EditParamSelect(coordinator, api, "236"), coordinator, api
+
+
+@pytest.mark.parametrize(
+    ("value", "label"),
+    [(0, "Off"), (1, "Day/Comfort"), (2, "Night/Eco"), (3, "Schedule")],
+)
+@pytest.mark.asyncio
+async def test_circuit_select_state_and_numeric_write(load_fixture, value, label):
+    """Verified labels read and write their matching controller values."""
+    select, coordinator, api = _circuit_select(load_fixture)
+    coordinator.data["editParamCatalog"]["236"]["value"] = value
+    assert select.current_option == label
+    await select.async_select_option(label)
+    api.set_param.assert_awaited_once_with("236", value)
+    coordinator.async_request_refresh.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("option", ["1", "4", "bogus"])
+async def test_circuit_select_rejects_unadvertised_options(load_fixture, option):
+    """Do not write unadvertised choices."""
+    select, _, api = _circuit_select(load_fixture)
+    with pytest.raises(HomeAssistantError):
+        await select.async_select_option(option)
+    api.set_param.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("change", ["locked", "uneditable", "missing"])
+async def test_circuit_select_refuses_when_live_parameter_not_writable(
+    load_fixture, change
+):
+    """A previously advertised option cannot bypass a current controller lock."""
+    select, coordinator, api = _circuit_select(load_fixture)
+    coordinator.data["editParams"] = {"236": {"edit": True, "locked": False}}
+    if change == "missing":
+        coordinator.data["editParams"].pop("236")
+    elif change == "locked":
+        coordinator.data["editParams"]["236"]["locked"] = True
+    else:
+        coordinator.data["editParams"]["236"]["edit"] = False
+    with pytest.raises(HomeAssistantError):
+        await select.async_select_option("Schedule")
+    api.set_param.assert_not_awaited()
+
+
+@pytest.mark.parametrize("change", ["controller", "protocol", "name", "pid", "missing"])
+def test_circuit_select_requires_matching_metadata(load_fixture, change):
+    """Unverified parameters and controllers retain numeric options."""
+    select, coordinator, api = _circuit_select(load_fixture)
+    data = coordinator.data
+    if change == "controller":
+        data["sysParams"]["controllerID"] = "ecoMAX360-cf8"
+    elif change == "protocol":
+        data["sysParams"]["protocolType"] = "other"
+    elif change == "name":
+        data["editParamCatalog"]["236"]["name"] = "Other"
+    elif change == "missing":
+        data.pop("sysParams")
+    else:
+        data["editParamCatalog"]["237"] = data["editParamCatalog"]["236"]
+        select = EditParamSelect(coordinator, api, "237")
+    assert select.options == ["0", "1", "2", "3"]
+
+
+@pytest.mark.asyncio
+async def test_circuit_options_and_metadata_changes_are_live(load_fixture):
+    """Refresh options and guard writes as controller metadata changes."""
+    select, coordinator, api = _circuit_select(load_fixture)
+    info = coordinator.data["editParamCatalog"]["236"]
+    info["options"] = ["1", "3", "4"]
+    info["value"] = 4
+    assert select.options == ["Day/Comfort", "Schedule", "4"]
+    assert select.current_option == "4"
+    with pytest.raises(HomeAssistantError):
+        await select.async_select_option("Off")
+    api.set_param.assert_not_awaited()
+    coordinator.data["sysParams"]["protocolType"] = "unknown"
+    assert select.options == ["1", "3", "4"]
+    with pytest.raises(HomeAssistantError):
+        await select.async_select_option("Schedule")
+    await select.async_select_option("3")
+    api.set_param.assert_awaited_once_with("236", 3)
+
+
+@pytest.mark.parametrize("value", [None, 9, 1.5, "bad", float("inf")])
+def test_circuit_select_unknown_values_have_no_state(load_fixture, value):
+    """Invalid and unadvertised controller values have no current option."""
+    select, coordinator, _ = _circuit_select(load_fixture)
+    coordinator.data["editParamCatalog"]["236"]["value"] = value
+    assert select.current_option is None
+
+
+@pytest.mark.asyncio
+async def test_generic_select_validates_advertised_options_and_api_failure():
+    """Generic selects reject invalid choices and propagate write failures."""
+    coordinator = _coordinator(_catalog())
+    coordinator.async_request_refresh = AsyncMock()
+    api = _make_api()
+    api.set_param = AsyncMock(return_value=False)
+    select = EditParamSelect(coordinator, api, "sel1")
+    with pytest.raises(HomeAssistantError):
+        await select.async_select_option("6")
+    api.set_param.assert_not_awaited()
+    with pytest.raises(HomeAssistantError):
+        await select.async_select_option("2")
+    api.set_param.assert_awaited_once_with("sel1", 2)
+    coordinator.async_request_refresh.assert_not_awaited()
 
 
 class TestCreateEditParamEntities:
     """Test the per-platform editParams entity factories."""
+
+    def test_verified_circuit_work_state_has_semantic_options(self, load_fixture):
+        catalog = build_edit_param_catalog(
+            load_fixture("ecoMAX360i", "editParams.json")
+        )
+        coordinator = _coordinator(catalog)
+        coordinator.data["sysParams"] = load_fixture("ecoMAX360i", "sysParams.json")
+        select = EditParamSelect(coordinator, _make_api(), "236")
+
+        assert select.options == ["Off", "Day/Comfort", "Night/Eco", "Schedule"]
+        assert select.unique_id == "test-uid-edit_236"
 
     def test_numbers_include_number_and_expose_number(self):
         catalog = _catalog()

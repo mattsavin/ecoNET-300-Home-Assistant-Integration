@@ -55,6 +55,9 @@ choice. See [Device settings](CONFIGURATION.md#device-settings) to enable it and
   it may be deleted from the integration page after all its entities, including disabled ones, have moved.
 - Automations are **not rewritten automatically**. Entity-targeted references retain their entity IDs, but
   device- or area-targeted references must be reviewed in both directions.
+- On ecoMAX360i `gm3_pomp` controllers, the Circuit 1 work-state select keeps its entity ID but its options
+  change from `0`, `1`, `2`, `3` to `Off`, `Day/Comfort`, `Night/Eco`, `Schedule`, respectively. Update
+  automations, scripts and dashboards that compare or set the numeric-string options; they are not rewritten.
 - The DHW and buffer groups reuse `<uid>-huw` and `<uid>-buffer` as ordinary service-type devices on all
   supported versions. They are not converted to child devices: that irreversible conversion would prevent
   legacy Split from registering the same identifiers as ordinary devices. Other component identifiers are
