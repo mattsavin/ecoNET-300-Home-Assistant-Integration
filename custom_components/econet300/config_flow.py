@@ -65,6 +65,7 @@ from .mem_cache import MemCache
 from .raw_entity_hiding import (
     RawEntityCandidate,
     apply_raw_entity_hiding,
+    group_raw_candidates,
     preview_raw_entities,
 )
 
@@ -307,6 +308,15 @@ def _build_multiselect_options(
     return options
 
 
+_RAW_CATEGORY_LABELS = {
+    "bitmasks": "Installer bitmask settings",
+    "service_registers": "Service, factory and raw registers",
+    "unused_mixers": "Unused Mixer 2–7 parameters",
+    "duplicate_values": "Duplicate _value helper numbers",
+    "other": "Other non-core raw parameters",
+}
+
+
 class EconetOptionsFlowHandler(OptionsFlow):
     """Handle options flow for ecoNET300."""
 
@@ -316,7 +326,7 @@ class EconetOptionsFlowHandler(OptionsFlow):
         self._selected_keys: list[str] = []
         self._configure_index: int = 0
         self._entity_configs: dict[str, dict[str, Any]] = {}
-        self._hide_candidates: dict[str, RawEntityCandidate] = {}
+        self._hide_candidates: dict[str, list[RawEntityCandidate]] = {}
         self._hide_selection: list[RawEntityCandidate] = []
         self._hide_applied: list[str] = []
         self._hide_skipped: list[str] = []
@@ -407,7 +417,7 @@ class EconetOptionsFlowHandler(OptionsFlow):
     async def async_step_hide_existing_raw(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Let user review and choose eligible visible raw parameters to hide."""
+        """Let user review and choose categories of visible raw parameters to hide."""
         runtime = self._raw_hiding_runtime()
         if runtime is None:
             return self.async_abort(reason="integration_not_loaded")
@@ -415,19 +425,17 @@ class EconetOptionsFlowHandler(OptionsFlow):
         registry = er.async_get(self.hass)
 
         if user_input is not None:
-            raw_ids = user_input.get("selected_entities", [])
-            unique_ids = list(dict.fromkeys(str(eid) for eid in raw_ids))
-            if not unique_ids:
+            raw_cats = user_input.get("selected_categories", [])
+            unique_cats = list(dict.fromkeys(str(cat) for cat in raw_cats))
+            if not unique_cats:
                 return self.async_abort(reason="no_raw_entities_selected")
-            selected = [
-                self._hide_candidates[eid]
-                for eid in unique_ids
-                if eid in self._hide_candidates
-            ]
-            if len(selected) != len(unique_ids):
+            if any(cat not in self._hide_candidates for cat in unique_cats):
                 return await self._show_hide_existing_raw_form(
                     registry, uid, catalog, errors={"base": "selection_stale"}
                 )
+            selected = [
+                item for cat in unique_cats for item in self._hide_candidates[cat]
+            ]
             self._hide_selection = selected
             return await self.async_step_confirm_hide_raw()
 
@@ -440,27 +448,23 @@ class EconetOptionsFlowHandler(OptionsFlow):
         catalog: dict[str, dict[str, Any]],
         errors: dict[str, str] | None = None,
     ) -> ConfigFlowResult:
-        """Build and show the multi-select list of eligible visible raw entities."""
+        """Build and show compact category choices of eligible visible raw entities."""
         candidates = preview_raw_entities(
             registry, self.config_entry.entry_id, uid, catalog
         )
         if not candidates:
             return self.async_abort(reason="no_eligible_raw_entities")
-        candidates = sorted(
-            candidates,
-            key=lambda item: (int(item.param_id), item.entity_id),
-        )
-        self._hide_candidates = {item.entity_id: item for item in candidates}
+        grouped = group_raw_candidates(candidates, catalog)
+        self._hide_candidates = grouped
         options = {
-            item.entity_id: (
-                f"{registry.async_get(item.entity_id).name or registry.async_get(item.entity_id).original_name or item.entity_id} "  # type: ignore[union-attr]
-                f"[{item.entity_id}]"
-            )
-            for item in candidates
+            cat: f"{_RAW_CATEGORY_LABELS.get(cat, cat)} ({len(items)})"
+            for cat, items in grouped.items()
         }
         schema = vol.Schema(
             {
-                vol.Optional("selected_entities", default=[]): cv.multi_select(options),
+                vol.Optional("selected_categories", default=[]): cv.multi_select(
+                    options
+                ),
             }
         )
         return self.async_show_form(
@@ -506,7 +510,11 @@ class EconetOptionsFlowHandler(OptionsFlow):
             self._hide_skipped = skipped
             return await self.async_step_hide_raw_result()
 
-        lines = "\n".join(f"- `{item.entity_id}`" for item in self._hide_selection)
+        preview_items = self._hide_selection[:20]
+        lines = "\n".join(f"- `{item.entity_id}`" for item in preview_items)
+        remaining = len(self._hide_selection) - len(preview_items)
+        if remaining > 0:
+            lines += f"\n- ... and {remaining} more"
         schema = vol.Schema({vol.Required("confirm", default=False): bool})
         return self.async_show_form(
             step_id="confirm_hide_raw",

@@ -17,6 +17,8 @@ import pytest_asyncio
 from custom_components.econet300.const import DOMAIN
 from custom_components.econet300.raw_entity_hiding import (
     apply_raw_entity_hiding,
+    classify_raw_candidate,
+    group_raw_candidates,
     preview_raw_entities,
 )
 
@@ -245,3 +247,55 @@ def test_apply_continues_and_reports_partial_failure(registry, monkeypatch):
         registry.async_get(third.entity_id).hidden_by == RegistryEntryHider.INTEGRATION
     )
     assert er.async_entries_for_config_entry(registry, "entry1")
+
+
+@pytest.mark.parametrize(
+    ("pid", "name", "kind", "suffix", "expected"),
+    [
+        ("231", "Circuit1Settings", "number", False, "bitmasks"),
+        ("181", "BuforSETTINGS", "number", False, "bitmasks"),
+        ("354", "AddSourceModuleSett", "number", False, "bitmasks"),
+        ("1369", "Axenregister2150RWRebootUnit", "switch", False, "service_registers"),
+        ("920", "EreaseEnergy", "switch", False, "service_registers"),
+        ("5", "FactorySetup", "switch", False, "service_registers"),
+        ("1443", "Hfanspeed06244", "number", False, "service_registers"),
+        ("1340", "ahsPumpkp", "number", False, "service_registers"),
+        ("317", "Mixer2valvedeadzone", "number", False, "unused_mixers"),
+        ("573", "mix2pidkp", "number", False, "unused_mixers"),
+        ("10041", "kasowanie_alarmow", "select", True, "duplicate_values"),
+        ("113", "HDWLoadTime", "number", False, "other"),
+    ],
+)
+def test_classify_raw_candidate_categories(pid, name, kind, suffix, expected):
+    """Eligible raw entities bucket cleanly into compact review categories."""
+    from custom_components.econet300.raw_entity_hiding import RawEntityCandidate
+
+    uid = f"controller-edit_{pid}" + ("_value" if suffix else "")
+    domain = "number" if suffix else kind
+    candidate = RawEntityCandidate(f"{domain}.x", uid, pid, name)
+    assert classify_raw_candidate(candidate, {"name": name, "kind": kind}) == expected
+
+
+def test_group_raw_candidates_omits_empty_buckets(registry):
+    """Category summary contains only non-empty buckets in display order."""
+    add_entry(
+        registry,
+        unique_id="controller-edit_231",
+        suggested_object_id="c1_settings",
+        original_name="Circuit 1 settings (231)",
+    )
+    add_entry(
+        registry,
+        unique_id="controller-edit_500",
+        suggested_object_id="pump_power",
+        original_name="Pump power (500)",
+    )
+    catalog = {
+        "231": {"name": "Circuit1Settings", "kind": "number"},
+        "500": {"name": "PumpPower", "kind": "number"},
+    }
+    candidates = preview_raw_entities(registry, "entry1", "controller", catalog)
+    grouped = group_raw_candidates(candidates, catalog)
+    assert list(grouped) == ["bitmasks", "other"]
+    assert len(grouped["bitmasks"]) == 1
+    assert len(grouped["other"]) == 1

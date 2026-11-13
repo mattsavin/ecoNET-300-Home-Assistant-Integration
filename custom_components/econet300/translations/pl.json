@@ -119,9 +119,9 @@
       },
       "hide_existing_raw": {
         "title": "Ukryj istniejące parametry surowe",
-        "description": "Wybierz widoczne surowe parametry edytowalne do ukrycia w standardowym widoku ({eligible_count} kwalifikujących się). Podstawowe sterowanie CWU i obiegu 1, encje już ukryte, wyłączone oraz własne są pomijane. Ukrycie nie wyłącza encji ani nie usuwa ich z automatyzacji. Później możesz ponownie pokazać pojedyncze encje w rejestrze Home Assistant.",
+        "description": "Wybierz kategorie widocznych surowych parametrów edytowalnych do ukrycia w standardowym widoku ({eligible_count} kwalifikujących się). Podstawowe sterowanie CWU i obiegu 1, encje już ukryte, wyłączone oraz własne są pomijane. Ukrycie nie wyłącza encji ani nie usuwa ich z automatyzacji. Później możesz ponownie pokazać pojedyncze encje w rejestrze Home Assistant.",
         "data": {
-          "selected_entities": "Widoczne surowe encje do ukrycia"
+          "selected_categories": "Kategorie do ukrycia"
         }
       },
       "confirm_hide_raw": {

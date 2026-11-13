@@ -139,7 +139,7 @@ toggled. Entity IDs and automations are unaffected; no bulk migration is perform
 ## Hiding existing raw parameters
 
 Use **Configure → Hide existing raw parameters** to review visible generic editable
-number, select and switch entities and hide selected ones explicitly.
+number, select and switch entities grouped by category and hide selected groups explicitly.
 
 - Nothing is pre-selected; changes apply only after reviewing the exact entity list and confirming.
 - Core DHW and Circuit 1 controls, custom entities, already-hidden entries and disabled entries are excluded from selection.

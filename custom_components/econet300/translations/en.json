@@ -119,9 +119,9 @@
       },
       "hide_existing_raw": {
         "title": "Hide existing raw parameters",
-        "description": "Select visible raw editable parameters to hide from the normal UI ({eligible_count} eligible). Core DHW and Circuit 1 controls, already-hidden entries, disabled entries and custom entities are excluded. Hiding does not disable entities or remove them from automations. Review and unhide individual entities later in Home Assistant.",
+        "description": "Select categories of visible raw editable parameters to hide from the normal UI ({eligible_count} eligible). Core DHW and Circuit 1 controls, already-hidden entries, disabled entries and custom entities are excluded. Hiding does not disable entities or remove them from automations. Review and unhide individual entities later in Home Assistant.",
         "data": {
-          "selected_entities": "Visible raw entities to hide"
+          "selected_categories": "Categories to hide"
         }
       },
       "confirm_hide_raw": {

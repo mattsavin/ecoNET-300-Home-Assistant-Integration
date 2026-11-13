@@ -10,7 +10,7 @@ from homeassistant.helpers.storage import Store
 import pytest
 import pytest_asyncio
 
-from custom_components.econet300.config_flow import EconetOptionsFlowHandler
+from custom_components.econet300.config_flow import ConfigFlow, EconetOptionsFlowHandler
 from custom_components.econet300.const import DOMAIN, SERVICE_API, SERVICE_COORDINATOR
 
 
@@ -46,8 +46,9 @@ async def setup_flow(hass, monkeypatch):
 
     catalog = {
         "103": {"name": "HDWTSetPoint", "kind": "number"},
+        "231": {"name": "Circuit1Settings", "kind": "number"},
         "500": {"name": "PumpPower", "kind": "number"},
-        "501": {"name": "ValveSpeed", "kind": "select"},
+        "502": {"name": "HiddenParam", "kind": "number"},
     }
     coordinator = MagicMock()
     coordinator.data = {"editParamCatalog": catalog}
@@ -68,20 +69,20 @@ async def setup_flow(hass, monkeypatch):
         original_name="DHW target temperature (103)",
         config_entry=entry,
     )
-    first = registry.async_get_or_create(
+    bitmask = registry.async_get_or_create(
+        "number",
+        DOMAIN,
+        "controller-edit_231",
+        suggested_object_id="circuit1_settings",
+        original_name="Circuit 1 settings (231)",
+        config_entry=entry,
+    )
+    other = registry.async_get_or_create(
         "number",
         DOMAIN,
         "controller-edit_500",
         suggested_object_id="pump_power",
         original_name="Pump power (500)",
-        config_entry=entry,
-    )
-    second = registry.async_get_or_create(
-        "select",
-        DOMAIN,
-        "controller-edit_501",
-        suggested_object_id="valve_speed",
-        original_name="Valve speed (501)",
         config_entry=entry,
     )
     user_hidden = registry.async_get_or_create(
@@ -93,7 +94,6 @@ async def setup_flow(hass, monkeypatch):
         config_entry=entry,
         hidden_by=er.RegistryEntryHider.USER,
     )
-    catalog["502"] = {"name": "HiddenParam", "kind": "number"}
 
     handler = EconetOptionsFlowHandler()
     handler.hass = hass
@@ -107,15 +107,15 @@ async def setup_flow(hass, monkeypatch):
         "coordinator": coordinator,
         "api": api,
         "protected": protected,
-        "first": first,
-        "second": second,
+        "bitmask": bitmask,
+        "other": other,
         "user_hidden": user_hidden,
     }
 
 
 @pytest.mark.asyncio
-async def test_menu_and_preview_default_empty_without_mutations(setup_flow):
-    """Init menu exposes the tool, preview defaults to nothing selected, and cancel writes nothing."""
+async def test_menu_and_category_preview_default_empty_without_mutations(setup_flow):
+    """Init menu exposes category picker defaulting to nothing selected."""
     handler = setup_flow["handler"]
     registry = setup_flow["registry"]
 
@@ -127,61 +127,59 @@ async def test_menu_and_preview_default_empty_without_mutations(setup_flow):
     assert step1["type"] == FlowResultType.FORM
     assert step1["step_id"] == "hide_existing_raw"
     schema = step1["data_schema"]
-    assert schema({})["selected_entities"] == []
-    # Protected and user-hidden entries are not selectable
-    selectable = schema.schema["selected_entities"].options
-    assert setup_flow["first"].entity_id in selectable
-    assert setup_flow["second"].entity_id in selectable
-    assert setup_flow["protected"].entity_id not in selectable
-    assert setup_flow["user_hidden"].entity_id not in selectable
+    assert schema({})["selected_categories"] == []
+    categories = schema.schema["selected_categories"].options
+    assert set(categories) == {"bitmasks", "other"}
+    assert "(1)" in categories["bitmasks"]
 
     # Empty selection aborts cleanly with zero registry or options writes
-    empty_res = await handler.async_step_hide_existing_raw({"selected_entities": []})
+    empty_res = await handler.async_step_hide_existing_raw({"selected_categories": []})
     assert empty_res["type"] == FlowResultType.ABORT
     assert empty_res["reason"] == "no_raw_entities_selected"
-    assert registry.async_get(setup_flow["first"].entity_id).hidden_by is None
+    assert registry.async_get(setup_flow["bitmask"].entity_id).hidden_by is None
     setup_flow["hass"].config_entries.async_update_entry.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_preview_confirm_cancel_and_apply_selected_only(setup_flow):
-    """Explicit confirmation hides only selected entries and preserves everything else."""
+async def test_category_confirm_cancel_and_apply_selected_only(setup_flow):
+    """Explicit confirmation hides only selected categories and preserves everything else."""
     handler = setup_flow["handler"]
     registry = setup_flow["registry"]
-    first = setup_flow["first"]
-    second = setup_flow["second"]
-    registry.async_update_entity(first.entity_id, name="My custom name")
+    bitmask = setup_flow["bitmask"]
+    other = setup_flow["other"]
+    registry.async_update_entity(bitmask.entity_id, name="My custom name")
 
     await handler.async_step_hide_existing_raw()
     confirm = await handler.async_step_hide_existing_raw(
-        {"selected_entities": [first.entity_id]}
+        {"selected_categories": ["bitmasks"]}
     )
     assert confirm["type"] == FlowResultType.FORM
     assert confirm["step_id"] == "confirm_hide_raw"
     assert confirm["description_placeholders"]["count"] == "1"
-    assert first.entity_id in confirm["description_placeholders"]["entities"]
-    assert registry.async_get(first.entity_id).hidden_by is None
+    assert bitmask.entity_id in confirm["description_placeholders"]["entities"]
+    assert registry.async_get(bitmask.entity_id).hidden_by is None
 
     # Submitting with confirm=False aborts without mutations
     declined = await handler.async_step_confirm_hide_raw({"confirm": False})
     assert declined["type"] == FlowResultType.ABORT
     assert declined["reason"] == "hide_cancelled"
-    assert registry.async_get(first.entity_id).hidden_by is None
+    assert registry.async_get(bitmask.entity_id).hidden_by is None
 
     # Now select and confirm
     await handler.async_step_hide_existing_raw()
-    await handler.async_step_hide_existing_raw({"selected_entities": [first.entity_id]})
+    await handler.async_step_hide_existing_raw({"selected_categories": ["bitmasks"]})
     result = await handler.async_step_confirm_hide_raw({"confirm": True})
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "hide_raw_result"
     assert result["description_placeholders"]["applied_count"] == "1"
     assert result["description_placeholders"]["skipped_count"] == "0"
 
-    updated_first = registry.async_get(first.entity_id)
-    assert updated_first.hidden_by == er.RegistryEntryHider.INTEGRATION
-    assert updated_first.disabled_by is None
-    assert updated_first.name == "My custom name"
-    assert registry.async_get(second.entity_id).hidden_by is None
+    updated = registry.async_get(bitmask.entity_id)
+    assert updated.hidden_by == er.RegistryEntryHider.INTEGRATION
+    assert updated.disabled_by is None
+    assert updated.name == "My custom name"
+    assert registry.async_get(other.entity_id).hidden_by is None
+    assert registry.async_get(setup_flow["protected"].entity_id).hidden_by is None
     assert (
         registry.async_get(setup_flow["user_hidden"].entity_id).hidden_by
         == er.RegistryEntryHider.USER
@@ -202,22 +200,22 @@ async def test_stale_change_between_preview_and_confirm_performs_zero_writes(
     """If any selected entry changes before confirmation, make zero writes and re-select."""
     handler = setup_flow["handler"]
     registry = setup_flow["registry"]
-    first = setup_flow["first"]
-    second = setup_flow["second"]
+    bitmask = setup_flow["bitmask"]
+    other = setup_flow["other"]
 
     await handler.async_step_hide_existing_raw()
     await handler.async_step_hide_existing_raw(
-        {"selected_entities": [first.entity_id, second.entity_id]}
+        {"selected_categories": ["bitmasks", "other"]}
     )
     # User hides second in HA UI before confirming
-    registry.async_update_entity(second.entity_id, hidden_by=er.RegistryEntryHider.USER)
+    registry.async_update_entity(other.entity_id, hidden_by=er.RegistryEntryHider.USER)
 
     res = await handler.async_step_confirm_hide_raw({"confirm": True})
     assert res["type"] == FlowResultType.FORM
     assert res["step_id"] == "hide_existing_raw"
     assert res["errors"]["base"] == "selection_stale"
-    assert registry.async_get(first.entity_id).hidden_by is None
-    assert registry.async_get(second.entity_id).hidden_by == er.RegistryEntryHider.USER
+    assert registry.async_get(bitmask.entity_id).hidden_by is None
+    assert registry.async_get(other.entity_id).hidden_by == er.RegistryEntryHider.USER
 
 
 @pytest.mark.asyncio
@@ -226,10 +224,10 @@ async def test_no_eligible_entries_aborts_cleanly(setup_flow):
     handler = setup_flow["handler"]
     registry = setup_flow["registry"]
     registry.async_update_entity(
-        setup_flow["first"].entity_id, hidden_by=er.RegistryEntryHider.USER
+        setup_flow["bitmask"].entity_id, hidden_by=er.RegistryEntryHider.USER
     )
     registry.async_update_entity(
-        setup_flow["second"].entity_id, hidden_by=er.RegistryEntryHider.INTEGRATION
+        setup_flow["other"].entity_id, hidden_by=er.RegistryEntryHider.INTEGRATION
     )
     res = await handler.async_step_hide_existing_raw()
     assert res["type"] == FlowResultType.ABORT
@@ -243,13 +241,12 @@ async def test_options_flow_manager_preserves_options_on_hide_abort(hass, setup_
 
     entry = setup_flow["entry"]
     registry = setup_flow["registry"]
-    first = setup_flow["first"]
+    bitmask = setup_flow["bitmask"]
     entries = {entry.entry_id: entry}
     manager = config_entries.OptionsFlowManager(hass)
     manager._progress = {}
     hass.config_entries.async_get_known_entry.side_effect = entries.get
     hass.config_entries.options = manager
-    from custom_components.econet300.config_flow import ConfigFlow
 
     hass.config_entries.async_entries.return_value = [entry]
     flow = ConfigFlow.async_get_options_flow(entry)
@@ -259,7 +256,7 @@ async def test_options_flow_manager_preserves_options_on_hide_abort(hass, setup_
     assert "hide_existing_raw" in menu["menu_options"]
     select_form = await flow.async_step_hide_existing_raw()
     confirm_form = await flow.async_step_hide_existing_raw(
-        select_form["data_schema"]({"selected_entities": [first.entity_id]})
+        select_form["data_schema"]({"selected_categories": ["bitmasks"]})
     )
     assert confirm_form["step_id"] == "confirm_hide_raw"
     result_form = await flow.async_step_confirm_hide_raw({"confirm": True})
@@ -268,7 +265,7 @@ async def test_options_flow_manager_preserves_options_on_hide_abort(hass, setup_
     finish_res = await manager.async_finish_flow(flow, abort_res)
     assert finish_res["type"] == FlowResultType.ABORT
     assert (
-        registry.async_get(first.entity_id).hidden_by
+        registry.async_get(bitmask.entity_id).hidden_by
         == er.RegistryEntryHider.INTEGRATION
     )
     setup_flow["hass"].config_entries.async_update_entry.assert_not_called()
@@ -279,27 +276,27 @@ async def test_partial_write_failure_reports_accurate_counts(setup_flow, monkeyp
     """When one registry update fails, the summary shows actual applied and skipped counts."""
     handler = setup_flow["handler"]
     registry = setup_flow["registry"]
-    first = setup_flow["first"]
-    second = setup_flow["second"]
+    bitmask = setup_flow["bitmask"]
+    other = setup_flow["other"]
     real_update = registry.async_update_entity
 
     def fail_second(entity_id, **kwargs):
-        if entity_id == second.entity_id:
+        if entity_id == other.entity_id:
             raise RuntimeError("write error")
         return real_update(entity_id, **kwargs)
 
     monkeypatch.setattr(registry, "async_update_entity", fail_second)
     await handler.async_step_hide_existing_raw()
     await handler.async_step_hide_existing_raw(
-        {"selected_entities": [first.entity_id, second.entity_id]}
+        {"selected_categories": ["bitmasks", "other"]}
     )
     result = await handler.async_step_confirm_hide_raw({"confirm": True})
     assert result["step_id"] == "hide_raw_result"
     assert result["description_placeholders"]["applied_count"] == "1"
     assert result["description_placeholders"]["skipped_count"] == "1"
-    assert second.entity_id in result["description_placeholders"]["skipped"]
+    assert other.entity_id in result["description_placeholders"]["skipped"]
     assert (
-        registry.async_get(first.entity_id).hidden_by
+        registry.async_get(bitmask.entity_id).hidden_by
         == er.RegistryEntryHider.INTEGRATION
     )
-    assert registry.async_get(second.entity_id).hidden_by is None
+    assert registry.async_get(other.entity_id).hidden_by is None

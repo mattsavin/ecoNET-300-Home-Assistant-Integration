@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass
 import logging
+import re
 from typing import Any
 
 from homeassistant.helpers.entity_registry import (
@@ -18,6 +19,20 @@ _LOGGER = logging.getLogger(__name__)
 
 _PROTECTED_PIDS = frozenset({"103", "115", "119", "236", "238", "239"})
 _RAW_DOMAINS = frozenset({"number", "select", "switch"})
+RAW_CATEGORY_ORDER = (
+    "bitmasks",
+    "service_registers",
+    "unused_mixers",
+    "duplicate_values",
+    "other",
+)
+_UNUSED_MIXER_RE = re.compile(r"^(?:Mixer|Mix)[2-7]", re.IGNORECASE)
+_SERVICE_REGISTER_RE = re.compile(
+    r"^(?:FactorySetup|Ere?aseEnergy|Axenregister|HoldingRegister|Hfanspeed|"
+    r"ahs(?:Pump|Temp)|Axen2155|UhsPump|PwmInverse|ScreedDrying|EPowerWorldRegisters)",
+    re.IGNORECASE,
+)
+_BITMASK_NAME_RE = re.compile(r"(?:Settings|Sett)$", re.IGNORECASE)
 
 
 @dataclass(frozen=True, slots=True)
@@ -28,6 +43,40 @@ class RawEntityCandidate:
     unique_id: str
     param_id: str
     catalog_name: str
+
+
+def classify_raw_candidate(
+    candidate: RawEntityCandidate, info: dict[str, Any] | None = None
+) -> str:
+    """Bucket a raw edit-parameter candidate into a compact review category."""
+    if candidate.unique_id.endswith("_value"):
+        return "duplicate_values"
+    name = candidate.catalog_name
+    if _UNUSED_MIXER_RE.match(name):
+        return "unused_mixers"
+    if _SERVICE_REGISTER_RE.match(name):
+        return "service_registers"
+    if (
+        isinstance(info, dict)
+        and info.get("kind") == "number"
+        and _BITMASK_NAME_RE.search(name)
+    ):
+        return "bitmasks"
+    return "other"
+
+
+def group_raw_candidates(
+    candidates: list[RawEntityCandidate],
+    catalog: dict[str, dict[str, Any]],
+) -> dict[str, list[RawEntityCandidate]]:
+    """Group candidates by category, omitting empty categories in stable order."""
+    buckets: dict[str, list[RawEntityCandidate]] = {
+        key: [] for key in RAW_CATEGORY_ORDER
+    }
+    for candidate in candidates:
+        category = classify_raw_candidate(candidate, catalog.get(candidate.param_id))
+        buckets[category].append(candidate)
+    return {key: items for key, items in buckets.items() if items}
 
 
 def _match_candidate(

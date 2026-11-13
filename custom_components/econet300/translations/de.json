@@ -119,9 +119,9 @@
       },
       "hide_existing_raw": {
         "title": "Vorhandene Rohparameter ausblenden",
-        "description": "Wählen Sie sichtbare bearbeitbare Rohparameter aus, die in der Standardansicht ausgeblendet werden sollen ({eligible_count} geeignet). Zentrale Warmwasser- und Heizkreis-1-Steuerungen, bereits ausgeblendete, deaktivierte sowie benutzerdefinierte Entitäten werden ausgeschlossen. Das Ausblenden deaktiviert keine Entitäten und entfernt sie nicht aus Automatisierungen. Einzelne Entitäten können später im Home-Assistant-Entitätsregister wieder eingeblendet werden.",
+        "description": "Wählen Sie Kategorien sichtbarer bearbeitbarer Rohparameter aus, die in der Standardansicht ausgeblendet werden sollen ({eligible_count} geeignet). Zentrale Warmwasser- und Heizkreis-1-Steuerungen, bereits ausgeblendete, deaktivierte sowie benutzerdefinierte Entitäten werden ausgeschlossen. Das Ausblenden deaktiviert keine Entitäten und entfernt sie nicht aus Automatisierungen. Einzelne Entitäten können später im Home-Assistant-Entitätsregister wieder eingeblendet werden.",
         "data": {
-          "selected_entities": "Sichtbare Roh-Entitäten zum Ausblenden"
+          "selected_categories": "Auszublendende Kategorien"
         }
       },
       "confirm_hide_raw": {
