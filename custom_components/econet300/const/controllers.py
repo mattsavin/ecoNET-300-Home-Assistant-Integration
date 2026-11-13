@@ -217,6 +217,7 @@ EDIT_PARAM_FRIENDLY_NAMES: Final[dict[str, str]] = {
     "Circuit6EcoTemp": "Circuit 6 night temp",
     "Circuit7ComfortTemp": "Circuit 7 day temp",
     "Circuit7EcoTemp": "Circuit 7 night temp",
+    "EreaseEnergy": "Erase energy",
     "FactorySetup": "Factory setup",
     "HDWLegionDay": "DHW legionella day",
     "HDWLegionHour": "DHW legionella hour",

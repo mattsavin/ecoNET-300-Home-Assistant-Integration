@@ -72,3 +72,29 @@ def test_number_value_suffix_identity_is_unchanged():
     entity = EditParamNumber(_coordinator(catalog), _make_api(), "286")
     assert entity.name == "Circuit 2 operating state (286) value"
     assert entity.unique_id == "test-uid-edit_286_value"
+
+
+@pytest.mark.parametrize(
+    ("raw_key", "expected"),
+    [
+        ("EreaseEnergy", "Erase energy"),
+        ("ImmersionBoosttimeLeft", "Immersion boost time left"),
+        ("ImmersionBoostsettings", "Immersion boost settings"),
+        ("Circuit1boosttimeleft", "Circuit 1 boost time left"),
+        ("Mixer2valvedeadzone", "Mixer 2 valve deadzone"),
+        ("Axenregister2100RW", "Axen register 2100 RW"),
+        ("Axenregister2150RWRebootUnit", "Axen register 2150 RW reboot unit"),
+        ("PwmInverse", "PWM inverse"),
+        ("ahsPumpkp", "AHS pump Kp"),
+        ("ahsPumpti", "AHS pump Ti"),
+        ("ahsPumptd", "AHS pump Td"),
+        ("ahsPumpts", "AHS pump Ts"),
+        ("ahsPumpMinSpeed", "AHS pump min speed"),
+        ("ahsPumpMaxSpeed", "AHS pump max speed"),
+        ("ahsPumpMaxStep", "AHS pump max step"),
+        ("Hfanspeed06244", "H fan speed 06244"),
+    ],
+)
+def test_observed_typos_and_squashed_tokens_are_cleaned(raw_key, expected):
+    """Expand observed squashed words and vendor typos without changing unique IDs."""
+    assert friendly_edit_param_name(raw_key) == expected

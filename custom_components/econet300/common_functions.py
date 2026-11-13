@@ -369,15 +369,29 @@ def should_be_switch_entity(param: dict) -> bool:
 
 
 _EDIT_PARAM_WORD_MAP = {
+    "ahs": "AHS",
+    "axenregister": "Axen register",
+    "boostsettings": "boost settings",
+    "boosttime": "boost time",
+    "boosttimeleft": "boost time left",
     "bufor": "buffer",
     "corr": "correction",
     "cwu": "DHW",
     "dhw": "DHW",
     "hdw": "DHW",
+    "hfanspeed": "H fan speed",
     "hist": "hysteresis",
     "hp": "HP",
     "mths": "MTHS",
+    "pumpkp": "pump Kp",
+    "pumpmax": "pump max",
+    "pumpmin": "pump min",
+    "pumptd": "pump Td",
+    "pumpti": "pump Ti",
+    "pumpts": "pump Ts",
+    "pwm": "PWM",
     "rad": "radiator",
+    "rwreboot": "RW reboot",
     "sett": "settings",
     "smartgrid": "Smart Grid",
     "ssa": "SSA",
@@ -385,6 +399,7 @@ _EDIT_PARAM_WORD_MAP = {
     "thr": "threshold",
     "timestop": "stop time",
     "timework": "work time",
+    "valvedeadzone": "valve deadzone",
     "valveopeningtime": "valve opening time",
 }
 
