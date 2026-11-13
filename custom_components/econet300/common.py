@@ -155,6 +155,19 @@ def build_edit_param_catalog(
                 or lname in ("summeron", "summeroff")
             ):
                 unit = "°C"
+            elif lname in (
+                "holdingregister6050",
+                "holdingregister6061",
+                "holdingregister6271",
+                "axen2155uhspumpmanualpreset",
+                "uhspumppresetinahssupport",
+                "ahspumpstartspeed",
+                "ahspumpminspeed",
+                "ahspumpmaxspeed",
+            ):
+                unit = "%"
+            elif lname.startswith("hfanspeed"):
+                unit = "RPM"
 
             minv = entry.get("minv")
             maxv = entry.get("maxv")
@@ -213,6 +226,14 @@ def build_edit_param_catalog(
                         options = [
                             str(v) for v in range(int(native_min), int(native_max) + 1)
                         ]
+            elif str(pid) == "119" and name == "HDWusermode":
+                # 0 = Off, 1 = On, 2 = Schedule (field-verified on ecoMAX360i;
+                # editParams omits minv/maxv on some firmwares).
+                kind = "select"
+                native_min = 0.0
+                native_max = max(2.0, float(value))
+                native_step = 1.0
+                options = [str(v) for v in range(int(native_min), int(native_max) + 1)]
             elif value in (0, 1):
                 kind = "switch"
                 expose_number = True

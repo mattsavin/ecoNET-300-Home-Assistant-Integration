@@ -13,7 +13,7 @@ Covers issue #236:
 from typing import cast
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from homeassistant.components.number import NumberDeviceClass
+from homeassistant.components.number import NumberDeviceClass, NumberMode
 from homeassistant.const import UnitOfTemperature
 from homeassistant.exceptions import HomeAssistantError
 import pytest
@@ -589,6 +589,74 @@ class TestCreateEditParamEntities:
         assert select.unique_id == f"{api.uid}-edit_119"
         assert switch.name == "Clear alarms (10041)"
         assert switch.unique_id == f"{api.uid}-edit_10041"
+
+    @pytest.mark.parametrize("controller", ["ecoMAX360i", "ecoMAX360-cf8"])
+    @pytest.mark.asyncio
+    async def test_dhw_mode_119_classifies_as_semantic_select(
+        self, load_fixture, controller
+    ):
+        """HDWusermode (119) is a 3-way select even when editParams omits min/max."""
+        catalog = build_edit_param_catalog(load_fixture(controller, "editParams.json"))
+        assert catalog["119"]["kind"] == "select"
+        assert catalog["119"]["options"] == ["0", "1", "2"]
+        assert catalog["119"]["expose_number"] is False
+
+        coordinator = _coordinator(catalog)
+        coordinator.data["sysParams"] = load_fixture("ecoMAX360i", "sysParams.json")
+        coordinator.async_request_refresh = AsyncMock()
+        api = _make_api()
+        api.set_param = AsyncMock(return_value=True)
+        select = EditParamSelect(coordinator, api, "119")
+        assert select.options == ["Off", "On", "Schedule"]
+        coordinator.data["editParamCatalog"]["119"]["value"] = 2
+        assert select.current_option == "Schedule"
+        await select.async_select_option("On")
+        api.set_param.assert_awaited_once_with("119", 1)
+
+    def test_number_slider_mode_device_class_and_units(self, load_fixture):
+        """Bounded user controls get sliders/units; unbounded/wide stay boxes."""
+        catalog = build_edit_param_catalog(
+            load_fixture("ecoMAX360i", "editParams.json")
+        )
+        catalog["1439"] = {
+            "name": "HoldingRegister6050",
+            "value": 35,
+            "min": 10.0,
+            "max": 100.0,
+            "step": 1.0,
+            "unit": None,
+            "kind": "number",
+        }
+        catalog["1443"] = {
+            "name": "Hfanspeed06244",
+            "value": 650,
+            "min": 200.0,
+            "max": 1000.0,
+            "step": 1.0,
+            "unit": None,
+            "kind": "number",
+        }
+        coordinator = _coordinator(catalog)
+        api = _make_api()
+
+        day_temp = EditParamNumber(coordinator, api, "238")
+        assert day_temp.mode == NumberMode.SLIDER
+        assert day_temp.device_class == NumberDeviceClass.TEMPERATURE
+
+        hyst = EditParamNumber(coordinator, api, "240")
+        assert hyst.mode == NumberMode.SLIDER
+        assert hyst.device_class is None
+
+        settings_mask = EditParamNumber(coordinator, api, "231")
+        assert settings_mask.mode == NumberMode.BOX
+
+        pump_pct = EditParamNumber(coordinator, api, "1439")
+        assert pump_pct.mode == NumberMode.SLIDER
+        assert pump_pct.native_unit_of_measurement == "%"
+
+        fan_rpm = EditParamNumber(coordinator, api, "1443")
+        assert fan_rpm.mode == NumberMode.BOX
+        assert fan_rpm.native_unit_of_measurement == "RPM"
 
     def test_select_current_option_for_value_in_options(self):
         catalog = _catalog()

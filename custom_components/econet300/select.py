@@ -52,6 +52,12 @@ _LOGGER = logging.getLogger(__name__)
 
 _DHW_LEGIONELLA_DAY_PARAM = "137"
 _ECO_MAX360I_SELECT_LABELS: dict[tuple[str, str], dict[str, str]] = {
+    # 0 = Off, 1 = On, 2 = Schedule (field-verified; vendor enum 101).
+    ("119", "HDWusermode"): {
+        "0": "Off",
+        "1": "On",
+        "2": "Schedule",
+    },
     # 0 = Off, 1 = Day/Comfort, 2 = Night/Eco, 3 = Schedule (field-verified).
     (CIRCUIT1_WORK_STATE_PARAM, "Circuit1WorkState"): {
         "0": "Off",

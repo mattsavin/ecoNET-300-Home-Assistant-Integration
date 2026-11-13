@@ -1436,7 +1436,28 @@ class EditParamNumber(CoordinatorEntity[EconetDataCoordinator], NumberEntity):
             self._attr_name = f"{self._attr_name} value"
 
         self._attr_device_info = _device_info(api)
-        self._attr_native_unit_of_measurement = info.get("unit")
+        unit = info.get("unit")
+        lname = str(pname).lower()
+        if unit is None:
+            if lname in (
+                "holdingregister6050",
+                "holdingregister6061",
+                "holdingregister6271",
+                "axen2155uhspumpmanualpreset",
+                "uhspumppresetinahssupport",
+                "ahspumpstartspeed",
+                "ahspumpminspeed",
+                "ahspumpmaxspeed",
+            ):
+                unit = "%"
+            elif lname.startswith("hfanspeed"):
+                unit = "RPM"
+        self._attr_native_unit_of_measurement = unit
+        if unit == "°C" and not any(
+            tok in lname
+            for tok in ("hist", "hyst", "reduction", "corr", "shift", "inc", "diff")
+        ):
+            self._attr_device_class = NumberDeviceClass.TEMPERATURE
         # number-minmax-fallback
         min_value = info.get("min")
         max_value = info.get("max")
@@ -1453,7 +1474,17 @@ class EditParamNumber(CoordinatorEntity[EconetDataCoordinator], NumberEntity):
         except (TypeError, ValueError):
             self._attr_native_max_value = 1000000.0
         self._attr_native_step = info.get("step") or 1.0
-        self._attr_mode = NumberMode.BOX
+        use_slider = (
+            not self._use_number_suffix
+            and min_value is not None
+            and max_value is not None
+            and self._attr_native_step > 0
+            and 0
+            < (self._attr_native_max_value - self._attr_native_min_value)
+            / self._attr_native_step
+            <= 300
+        )
+        self._attr_mode = NumberMode.SLIDER if use_slider else NumberMode.BOX
 
     @property
     def unique_id(self) -> str | None:

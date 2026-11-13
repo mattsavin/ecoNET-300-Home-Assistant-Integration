@@ -67,6 +67,9 @@ to expose its supported entities again. See [Heating circuit selection](CONFIGUR
 - On ecoMAX360i `gm3_pomp` controllers, the DHW legionella day select (`137`) keeps its entity ID and shows
   `Sunday`–`Saturday` (`0` = `Sunday` confirmed; `1`–`6` inferred sequentially) instead of `0`–`6`. Update any
   automations or scripts that set or compare numeric-string options.
+- `HDWusermode` (`119`) now registers as a `select` (`Off`, `On`, `Schedule` on ecoMAX360i `gm3_pomp`) even
+  when `editParams` omits explicit min/max limits, instead of switching between a `switch` and a `number`.
+  Bounded editable controls now use sliders (`NumberMode.SLIDER`) where appropriate.
 - Temperature and offset parameters with integer ranges (such as `SummerOn`, `SummerOff`, `HeatersForceTemp`,
   `HDWLegionSetPoint`, `HDWTSetPointDownHist`, `Circuit1TempReduction` and `BuforTempStartHydraulicHist`)
   now register as `number` entities with `°C` units rather than numeric-string `select` dropdowns. Previously
