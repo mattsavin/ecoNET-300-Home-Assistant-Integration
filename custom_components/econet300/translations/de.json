@@ -600,6 +600,39 @@
       "panel_ver": {
         "name": "Panelversion"
       },
+      "econet_conf_ver": {
+        "name": "ecoNET-Konfigurationsversion"
+      },
+      "ecosrv_port": {
+        "name": "ecoNET-Serverport"
+      },
+      "et_conf_ver": {
+        "name": "Panel-Konfigurationsversion"
+      },
+      "et_new_conf_trans": {
+        "name": "Neue Konfigurationsübertragung"
+      },
+      "log_fl": {
+        "name": "Flash-Protokollierung"
+      },
+      "schema_id": {
+        "name": "Schema-ID"
+      },
+      "settings_ver": {
+        "name": "Einstellungsversion"
+      },
+      "below_setpoint_counter": {
+        "name": "Zähler unter Sollwert"
+      },
+      "hdw_below_setpoint_counter": {
+        "name": "Warmwasser-Zähler unter Sollwert"
+      },
+      "temp_ahs": {
+        "name": "AHS-Temp."
+      },
+      "total_out_temp": {
+        "name": "Gesamtausgangstemp."
+      },
       "health_data_age": {
         "name": "Datenalter"
       },

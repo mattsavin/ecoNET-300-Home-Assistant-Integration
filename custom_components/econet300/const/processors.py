@@ -87,6 +87,8 @@ ENTITY_VALUE_PROCESSOR = {
     "totalEnergy": _numeric_or_none,
     "TempWthr": _temperature_or_none,
     "Circuit1thermostat": _temperature_or_none,
+    "TempAhs": _temperature_or_none,
+    "TotalOutTemp": _temperature_or_none,
     "mode": lambda x: SENSOR_MODE_MAPPING.get(x, _STATE_UNKNOWN),
     "lambdaStatus": lambda x: SENSOR_LAMBDA_STATUS_MAPPING.get(x, _STATE_UNKNOWN),
     "statusCWU": lambda x: SENSOR_STATUS_CWU_MAPPING.get(x, _STATE_UNKNOWN),

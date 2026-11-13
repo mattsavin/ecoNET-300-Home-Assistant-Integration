@@ -24,6 +24,16 @@ ENTITY_CATEGORY = {
     "moduleEcoSTERSoftVer": _EntityCategory.DIAGNOSTIC,
     "encryption": _EntityCategory.DIAGNOSTIC,
     "panelVer": _EntityCategory.DIAGNOSTIC,
+    "PS": _EntityCategory.DIAGNOSTIC,
+    "econetConfVer": _EntityCategory.DIAGNOSTIC,
+    "ecosrvPort": _EntityCategory.DIAGNOSTIC,
+    "etConfVer": _EntityCategory.DIAGNOSTIC,
+    "etNewConfTrans": _EntityCategory.DIAGNOSTIC,
+    "logFl": _EntityCategory.DIAGNOSTIC,
+    "schemaID": _EntityCategory.DIAGNOSTIC,
+    "settingsVer": _EntityCategory.DIAGNOSTIC,
+    "belowSetpointCounter": _EntityCategory.DIAGNOSTIC,
+    "hdwBelowSetpointCounter": _EntityCategory.DIAGNOSTIC,
     # Device registration/config values from the all-sensors sweep. These are
     # internal metadata (not operational readings), so group them as diagnostics.
     "prodLogo": _EntityCategory.DIAGNOSTIC,

@@ -99,6 +99,8 @@ ENTITY_UNIT_MAP = {
     "TempBuforUp": _UnitOfTemperature.CELSIUS,
     "TempCWU": _UnitOfTemperature.CELSIUS,
     "TempBuforDown": _UnitOfTemperature.CELSIUS,
+    "TempAhs": _UnitOfTemperature.CELSIUS,
+    "TotalOutTemp": _UnitOfTemperature.CELSIUS,
     "heatingUpperTemp": _UnitOfTemperature.CELSIUS,
     # Circuit1thermostat is room temperature on ecoMAX360i.
     "Circuit1thermostat": _UnitOfTemperature.CELSIUS,

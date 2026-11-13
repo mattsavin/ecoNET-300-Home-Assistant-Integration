@@ -42,6 +42,13 @@ STATE_CLASS_MAP: dict[str, _SensorStateClass | None] = {
     "Uzysk_ca_kowity": _SensorStateClass.TOTAL_INCREASING,
     # ecoMAX360i
     "PS": None,
+    "econetConfVer": None,
+    "ecosrvPort": None,
+    "etConfVer": None,
+    "etNewConfTrans": None,
+    "logFl": None,
+    "schemaID": None,
+    "settingsVer": None,
     "heating_work_state_pump4": None,
     "flapValveStates": None,
     "HeatDemanded": None,

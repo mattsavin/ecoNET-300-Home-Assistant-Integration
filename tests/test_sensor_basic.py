@@ -59,6 +59,23 @@ class TestEconetSensorBasic:
         [
             ("encryption", "encryption", "Encryption"),
             ("panelVer", "panel_ver", "Panel version"),
+            ("econetConfVer", "econet_conf_ver", "ecoNET config version"),
+            ("ecosrvPort", "ecosrv_port", "ecoNET server port"),
+            ("etConfVer", "et_conf_ver", "Panel config version"),
+            ("etNewConfTrans", "et_new_conf_trans", "New config transfer"),
+            ("logFl", "log_fl", "Flash logging"),
+            ("schemaID", "schema_id", "Schematic ID"),
+            ("settingsVer", "settings_ver", "Settings version"),
+            (
+                "belowSetpointCounter",
+                "below_setpoint_counter",
+                "Below setpoint counter",
+            ),
+            (
+                "hdwBelowSetpointCounter",
+                "hdw_below_setpoint_counter",
+                "DHW below setpoint counter",
+            ),
         ],
     )
     def test_system_metadata_sensors_are_named_diagnostics(
@@ -68,6 +85,8 @@ class TestEconetSensorBasic:
         sys_params = json.loads(
             (Path(__file__).parent / "fixtures/ecoMAX360i/sysParams.json").read_text()
         )
+        sys_params.setdefault("belowSetpointCounter", 0)
+        sys_params.setdefault("hdwBelowSetpointCounter", 0)
         coordinator = Mock()
         coordinator.data = {"regParams": {}, "sysParams": sys_params}
         api = Mock()
@@ -93,6 +112,38 @@ class TestEconetSensorBasic:
         for filename in ("translations/pl.json", "translations/de.json"):
             translations = json.loads((base / filename).read_text())
             assert translations["entity"]["sensor"][translation_key]["name"]
+
+    def test_ps_sensor_is_diagnostic_without_measurement_stats(self) -> None:
+        """PS reports panel software version on ecoMAX360i and belongs in diagnostics."""
+        description = create_sensor_entity_description("PS")
+        assert description.entity_category == EntityCategory.DIAGNOSTIC
+        assert description.state_class is None
+
+    @pytest.mark.parametrize(
+        "key",
+        [
+            "econetConfVer",
+            "ecosrvPort",
+            "etConfVer",
+            "etNewConfTrans",
+            "logFl",
+            "schemaID",
+            "settingsVer",
+        ],
+    )
+    def test_internal_metadata_has_no_measurement_state_class(self, key: str) -> None:
+        """Version numbers, ports and flags should not produce statistics."""
+        description = create_sensor_entity_description(key)
+        assert description.state_class is None
+
+    @pytest.mark.parametrize("key", ["TempAhs", "TotalOutTemp"])
+    def test_disconnected_999_sentinel_becomes_none(self, key: str) -> None:
+        """Disconnected temperature probes reporting 999 become None, not 999 °C."""
+        description = create_sensor_entity_description(key)
+        assert description.device_class == SensorDeviceClass.TEMPERATURE
+        assert description.native_unit_of_measurement == UnitOfTemperature.CELSIUS
+        assert description.process_val(999.0) is None
+        assert description.process_val(24.5) == 24.5
 
     # ruff: noqa: PLR6301
     def test_create_sensor_entity_description(self):

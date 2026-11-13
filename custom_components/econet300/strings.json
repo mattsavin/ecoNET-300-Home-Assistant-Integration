@@ -600,6 +600,39 @@
       "panel_ver": {
         "name": "Panel version"
       },
+      "econet_conf_ver": {
+        "name": "ecoNET config version"
+      },
+      "ecosrv_port": {
+        "name": "ecoNET server port"
+      },
+      "et_conf_ver": {
+        "name": "Panel config version"
+      },
+      "et_new_conf_trans": {
+        "name": "New config transfer"
+      },
+      "log_fl": {
+        "name": "Flash logging"
+      },
+      "schema_id": {
+        "name": "Schematic ID"
+      },
+      "settings_ver": {
+        "name": "Settings version"
+      },
+      "below_setpoint_counter": {
+        "name": "Below setpoint counter"
+      },
+      "hdw_below_setpoint_counter": {
+        "name": "DHW below setpoint counter"
+      },
+      "temp_ahs": {
+        "name": "AHS temp."
+      },
+      "total_out_temp": {
+        "name": "Total out temp."
+      },
       "health_data_age": {
         "name": "Data age"
       },

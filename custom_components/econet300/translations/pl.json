@@ -600,6 +600,39 @@
       "panel_ver": {
         "name": "Wersja panelu"
       },
+      "econet_conf_ver": {
+        "name": "Wersja konfiguracji ecoNET"
+      },
+      "ecosrv_port": {
+        "name": "Port serwera ecoNET"
+      },
+      "et_conf_ver": {
+        "name": "Wersja konfiguracji panelu"
+      },
+      "et_new_conf_trans": {
+        "name": "Transfer nowej konfiguracji"
+      },
+      "log_fl": {
+        "name": "Rejestrowanie flash"
+      },
+      "schema_id": {
+        "name": "ID schematu"
+      },
+      "settings_ver": {
+        "name": "Wersja ustawień"
+      },
+      "below_setpoint_counter": {
+        "name": "Licznik poniżej nastawy"
+      },
+      "hdw_below_setpoint_counter": {
+        "name": "Licznik poniżej nastawy CWU"
+      },
+      "temp_ahs": {
+        "name": "Temp. AHS"
+      },
+      "total_out_temp": {
+        "name": "Temp. wyjściowa całkowita"
+      },
       "health_data_age": {
         "name": "Wiek danych"
       },

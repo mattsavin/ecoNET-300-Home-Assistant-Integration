@@ -85,6 +85,8 @@ ENTITY_SENSOR_DEVICE_CLASS_MAP: dict[str, _SensorDeviceClass | None] = {
     "TempBuforUp": _SensorDeviceClass.TEMPERATURE,
     "TempCWU": _SensorDeviceClass.TEMPERATURE,
     "TempBuforDown": _SensorDeviceClass.TEMPERATURE,
+    "TempAhs": _SensorDeviceClass.TEMPERATURE,
+    "TotalOutTemp": _SensorDeviceClass.TEMPERATURE,
     "heatingUpperTemp": _SensorDeviceClass.TEMPERATURE,
     # Circuit1thermostat is room temperature on ecoMAX360i.
     "Circuit1thermostat": _SensorDeviceClass.TEMPERATURE,

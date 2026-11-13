@@ -132,6 +132,8 @@ ENTITY_PRECISION = {
     "heatingUpperTemp": 1,
     # Circuit1thermostat is room temperature on ecoMAX360i.
     "Circuit1thermostat": 1,
+    "TempAhs": 1,
+    "TotalOutTemp": 1,
     "heating_work_state_pump4": None,
     # ecoSOL specific precision (ecoSOL [n] models)
     "T1": 1,
