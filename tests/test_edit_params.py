@@ -202,6 +202,26 @@ class TestBuildEditParamCatalog:
         assert item["expose_number"] is False
         assert (item["min"], item["max"], item["step"]) == (-5, 5, 0.1)
 
+    def test_temperature_and_offset_ranges_stay_numbers(self, load_fixture):
+        """Small-span temperature/offset parameters are numbers, not enum selects."""
+        cat_360i = build_edit_param_catalog(
+            load_fixture("ecoMAX360i", "editParams.json")
+        )
+        for pid in ("104", "191", "262", "702", "703", "1468"):
+            assert cat_360i[pid]["kind"] == "number", cat_360i[pid]["name"]
+        assert cat_360i["702"]["unit"] == "°C"
+        assert cat_360i["703"]["unit"] == "°C"
+        assert cat_360i["236"]["kind"] == "select"
+        assert cat_360i["1490"]["kind"] == "select"
+
+        cat_cf8 = build_edit_param_catalog(
+            load_fixture("ecoMAX360-cf8", "editParams.json")
+        )
+        assert cat_cf8["104"]["kind"] == "number"
+        assert cat_cf8["136"]["kind"] == "number"
+        assert cat_cf8["136"]["unit"] == "°C"
+        assert cat_cf8["137"]["kind"] == "select"
+
     def test_zero_one_without_limits_exposes_number(self):
         raw = {"data": {"40": {"edit": True, "name": "Flag", "value": 0}}}
         item = build_edit_param_catalog(raw)["40"]

@@ -148,7 +148,12 @@ def build_edit_param_catalog(
             unit_code = entry.get("unit", 0)
             unit = None
             lname = str(name).lower()
-            if unit_code == 1 or "temp" in lname or "setpoint" in lname:
+            if (
+                unit_code == 1
+                or "temp" in lname
+                or "setpoint" in lname
+                or lname in ("summeron", "summeroff")
+            ):
                 unit = "°C"
 
             minv = entry.get("minv")
@@ -196,9 +201,11 @@ def build_edit_param_catalog(
                     kind = "switch"
                 elif (
                     has_explicit_limits
+                    and unit is None
                     and native_step in (1, 1.0)
                     and native_max.is_integer()
                     and native_min.is_integer()
+                    and 0 <= native_min <= 1
                 ):
                     span = int(native_max) - int(native_min)
                     if 0 <= span <= 20:
