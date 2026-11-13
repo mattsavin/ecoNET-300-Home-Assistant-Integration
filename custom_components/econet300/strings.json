@@ -628,7 +628,10 @@
         "name": "DHW below setpoint counter"
       },
       "temp_ahs": {
-        "name": "AHS temp."
+        "name": "Additional heat source temp."
+      },
+      "ahs_pump_power": {
+        "name": "Additional heat source pump power"
       },
       "total_out_temp": {
         "name": "Total out temp."

@@ -153,6 +153,16 @@ class TestEconetSensorBasic:
         assert description.process_val(999.0) is None
         assert description.process_val(24.5) == 24.5
 
+    def test_ahs_pump_power_has_friendly_translation(self) -> None:
+        """Verify ahsPumpPower has a non-cryptic translation across required locales."""
+        base = Path(__file__).parents[1] / "custom_components/econet300"
+        for filename in ("strings.json", "translations/en.json"):
+            translations = json.loads((base / filename).read_text())
+            assert (
+                translations["entity"]["sensor"]["ahs_pump_power"]["name"]
+                == "Additional heat source pump power"
+            )
+
     # ruff: noqa: PLR6301
     def test_create_sensor_entity_description(self):
         """Test creating a sensor entity description."""

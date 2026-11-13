@@ -179,8 +179,18 @@ EDIT_PARAMS_DATA_SENSOR_MAP: dict[str, str] = {
 
 # User-friendly display names for generic editParams controls
 EDIT_PARAM_FRIENDLY_NAMES: Final[dict[str, str]] = {
+    "AhsTempDiffHystStart": "AHS temperature differential hysteresis start",
+    "AhsTempDiffHystStop": "AHS temperature differential hysteresis stop",
     "AntifreezeSett": "Antifreeze settings",
+    "Axen2155uhsPumpManualPreset": "Heat pump water pump manual preset",
     "AxenWorkState": "Heat pump work state",
+    "Axenregister2100RW": "Outdoor unit mode (register 2100)",
+    "Axenregister2101RW": "Outdoor unit run request",
+    "Axenregister2102RW": "Outdoor unit register 2102",
+    "Axenregister2103RW": "Outdoor unit command bitfield",
+    "Axenregister2104RW": "Outdoor unit register 2104",
+    "Axenregister2150RWRebootUnit": "Reboot heat pump outdoor unit",
+    "Axenregister2200RW": "Outdoor unit register 2200 (unsupported)",
     "BuforSETTINGS": "Buffer settings",
     "BuforSetTempDownHist": "Buffer hysteresis",
     "BuforTempStartHydraulic": "Buffer hydraulic start temperature",
@@ -242,7 +252,15 @@ EDIT_PARAM_FRIENDLY_NAMES: Final[dict[str, str]] = {
     },
     "EreaseEnergy": "Erase energy",
     "FactorySetup": "Factory setup",
-    "HeatersForceTemp": "Heaters force temperature",
+    "HeatersForceTemp": "Heaters forced temperature",
+    "HeatersPermTemp": "Heaters permitted temperature",
+    "Hfanspeed06244": "Heat pump fan speed step 0",
+    "Hfanspeed16231": "Heat pump fan speed step 1",
+    "Hfanspeed26232": "Heat pump fan speed step 2",
+    "Hfanspeed36233": "Heat pump fan speed step 3",
+    "HoldingRegister6050": "Heat pump standby pump speed",
+    "HoldingRegister6061": "Heat pump minimum pump speed",
+    "HoldingRegister6271": "Heat pump maximum pump speed",
     "HDWLegionDay": "DHW legionella day",
     "HDWLegionHour": "DHW legionella hour",
     "HDWLegionSetPoint": "DHW legionella target temperature",
@@ -275,7 +293,7 @@ EDIT_PARAM_FRIENDLY_NAMES: Final[dict[str, str]] = {
     "ssaMaxCorr": "Weather compensation max correction",
     "ssaMinCorr": "Weather compensation min correction",
     "ssaSett": "Weather compensation enabled",
-    "workState2": "Work state 2",
+    "workState2": "System operating mode bitfield",
 }
 
 # ecoSTER thermostat sensors (if moduleEcoSTERSoftVer is not None)

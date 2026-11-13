@@ -342,6 +342,56 @@ async def test_circuit_select_refuses_when_live_parameter_not_writable(
     api.set_param.assert_not_awaited()
 
 
+@pytest.mark.parametrize(
+    ("value", "label"),
+    [
+        (0, "Sunday"),
+        (1, "Monday"),
+        (2, "Tuesday"),
+        (3, "Wednesday"),
+        (4, "Thursday"),
+        (5, "Friday"),
+        (6, "Saturday"),
+    ],
+)
+@pytest.mark.asyncio
+async def test_legionella_day_select_state_and_write(load_fixture, value, label):
+    """ecoMAX360i HDWLegionDay (137) exposes weekday labels while writing 0..6."""
+    catalog = build_edit_param_catalog(load_fixture("ecoMAX360-cf8", "editParams.json"))
+    coordinator = _coordinator(catalog)
+    coordinator.data["sysParams"] = load_fixture("ecoMAX360i", "sysParams.json")
+    coordinator.async_request_refresh = AsyncMock()
+    api = _make_api()
+    api.set_param = AsyncMock(return_value=True)
+    select = EditParamSelect(coordinator, api, "137")
+    coordinator.data["editParamCatalog"]["137"]["value"] = value
+    assert select.options == [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+    ]
+    assert select.current_option == label
+    await select.async_select_option(label)
+    api.set_param.assert_awaited_once_with("137", value)
+    coordinator.async_request_refresh.assert_awaited_once()
+
+
+def test_legionella_day_requires_matching_controller_and_name(load_fixture):
+    """Do not apply weekday labels when controller/protocol/name does not match."""
+    catalog = build_edit_param_catalog(load_fixture("ecoMAX360-cf8", "editParams.json"))
+    coordinator = _coordinator(catalog)
+    coordinator.data["sysParams"] = {
+        "controllerID": "ecoMAX810P-L",
+        "protocolType": "em",
+    }
+    select = EditParamSelect(coordinator, _make_api(), "137")
+    assert select.options == ["0", "1", "2", "3", "4", "5", "6"]
+
+
 @pytest.mark.parametrize("change", ["controller", "protocol", "name", "pid", "missing"])
 def test_circuit_select_requires_matching_metadata(load_fixture, change):
     """Unverified parameters and controllers retain numeric options."""

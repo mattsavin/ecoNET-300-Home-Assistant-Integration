@@ -628,7 +628,10 @@
         "name": "Warmwasser-Zähler unter Sollwert"
       },
       "temp_ahs": {
-        "name": "AHS-Temp."
+        "name": "Temp. Zusatzheizquelle"
+      },
+      "ahs_pump_power": {
+        "name": "Pumpenleistung Zusatzheizquelle"
       },
       "total_out_temp": {
         "name": "Gesamtausgangstemp."

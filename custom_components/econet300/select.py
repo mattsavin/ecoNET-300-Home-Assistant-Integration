@@ -50,6 +50,28 @@ from .entity import EconetEntity, get_device_info_for_component
 
 _LOGGER = logging.getLogger(__name__)
 
+_DHW_LEGIONELLA_DAY_PARAM = "137"
+_ECO_MAX360I_SELECT_LABELS: dict[tuple[str, str], dict[str, str]] = {
+    # 0 = Off, 1 = Day/Comfort, 2 = Night/Eco, 3 = Schedule (field-verified).
+    (CIRCUIT1_WORK_STATE_PARAM, "Circuit1WorkState"): {
+        "0": "Off",
+        "1": "Day/Comfort",
+        "2": "Night/Eco",
+        "3": "Schedule",
+    },
+    # 0 = Sunday (user-confirmed live); 1..6 = Monday..Saturday inferred from
+    # sequential choiceParams ordering and third-party ecoMAX360i integration.
+    (_DHW_LEGIONELLA_DAY_PARAM, "HDWLegionDay"): {
+        "0": "Sunday",
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+    },
+}
+
 
 def _device_info(api: Econet300Api) -> DeviceInfo:
     """Return main ecoNET300 device info for editParams entities."""
@@ -898,13 +920,14 @@ class EditParamSelect(CoordinatorEntity[EconetDataCoordinator], SelectEntity):
         options = [str(option) for option in (info.get("options") or [])]
         sys_params = data.get("sysParams") or {}
         if (
-            self._pid == CIRCUIT1_WORK_STATE_PARAM
-            and info.get("name") == "Circuit1WorkState"
-            and is_ecomax360i_controller(sys_params.get("controllerID"))
+            is_ecomax360i_controller(sys_params.get("controllerID"))
             and sys_params.get("protocolType") == "gm3_pomp"
         ):
-            labels = {"0": "Off", "1": "Day/Comfort", "2": "Night/Eco", "3": "Schedule"}
-            return {option: labels.get(option, option) for option in options}
+            labels = _ECO_MAX360I_SELECT_LABELS.get(
+                (self._pid, str(info.get("name") or ""))
+            )
+            if labels is not None:
+                return {option: labels.get(option, option) for option in options}
         return {option: option for option in options}
 
     @property

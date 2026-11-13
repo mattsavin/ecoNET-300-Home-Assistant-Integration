@@ -64,6 +64,9 @@ to expose its supported entities again. See [Heating circuit selection](CONFIGUR
 - On ecoMAX360i `gm3_pomp` controllers, the Circuit 1 work-state select keeps its entity ID but its options
   change from `0`, `1`, `2`, `3` to `Off`, `Day/Comfort`, `Night/Eco`, `Schedule`, respectively. Update
   automations, scripts and dashboards that compare or set the numeric-string options; they are not rewritten.
+- On ecoMAX360i `gm3_pomp` controllers, the DHW legionella day select (`137`) keeps its entity ID and shows
+  `Sunday`–`Saturday` (`0` = `Sunday` confirmed; `1`–`6` inferred sequentially) instead of `0`–`6`. Update any
+  automations or scripts that set or compare numeric-string options.
 - Temperature and offset parameters with integer ranges (such as `SummerOn`, `SummerOff`, `HeatersForceTemp`,
   `HDWLegionSetPoint`, `HDWTSetPointDownHist`, `Circuit1TempReduction` and `BuforTempStartHydraulicHist`)
   now register as `number` entities with `°C` units rather than numeric-string `select` dropdowns. Previously

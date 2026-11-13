@@ -628,7 +628,10 @@
         "name": "Licznik poniżej nastawy CWU"
       },
       "temp_ahs": {
-        "name": "Temp. AHS"
+        "name": "Temp. dodatkowego źródła ciepła"
+      },
+      "ahs_pump_power": {
+        "name": "Moc pompy dodatkowego źródła ciepła"
       },
       "total_out_temp": {
         "name": "Temp. wyjściowa całkowita"
