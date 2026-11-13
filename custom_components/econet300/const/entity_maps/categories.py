@@ -22,6 +22,8 @@ ENTITY_CATEGORY = {
     "routerType": _EntityCategory.DIAGNOSTIC,
     "ecosrvSoftVer": _EntityCategory.DIAGNOSTIC,
     "moduleEcoSTERSoftVer": _EntityCategory.DIAGNOSTIC,
+    "encryption": _EntityCategory.DIAGNOSTIC,
+    "panelVer": _EntityCategory.DIAGNOSTIC,
     # Device registration/config values from the all-sensors sweep. These are
     # internal metadata (not operational readings), so group them as diagnostics.
     "prodLogo": _EntityCategory.DIAGNOSTIC,

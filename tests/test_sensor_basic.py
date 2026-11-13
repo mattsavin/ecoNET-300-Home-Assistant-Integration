@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 from homeassistant.components.sensor import SensorDeviceClass, SensorStateClass
-from homeassistant.const import UnitOfEnergy, UnitOfTemperature
+from homeassistant.const import EntityCategory, UnitOfEnergy, UnitOfTemperature
 
 from custom_components.econet300.binary_sensor import create_ecoster_binary_sensors
 from custom_components.econet300.common_functions import (
@@ -52,6 +52,47 @@ from custom_components.econet300.sensor import (
 
 class TestEconetSensorBasic:
     """Test basic sensor functionality."""
+
+    # ruff: noqa: PLR6301
+    @pytest.mark.parametrize(
+        ("key", "translation_key", "english_name"),
+        [
+            ("encryption", "encryption", "Encryption"),
+            ("panelVer", "panel_ver", "Panel version"),
+        ],
+    )
+    def test_system_metadata_sensors_are_named_diagnostics(
+        self, key: str, translation_key: str, english_name: str
+    ) -> None:
+        """Keep system metadata identifiable and out of ordinary sensors."""
+        sys_params = json.loads(
+            (Path(__file__).parent / "fixtures/ecoMAX360i/sysParams.json").read_text()
+        )
+        coordinator = Mock()
+        coordinator.data = {"regParams": {}, "sysParams": sys_params}
+        api = Mock()
+        api.uid = "gateway"
+
+        sensor = next(
+            item
+            for item in create_controller_sensors(coordinator, api)
+            if item.entity_description.key == key
+        )
+
+        assert sensor.unique_id == f"gateway-{key}"
+        assert sensor.entity_description.entity_category == EntityCategory.DIAGNOSTIC
+        assert sensor.entity_description.translation_key == translation_key
+        assert sensor.entity_description.name is None
+        base = Path(__file__).parents[1] / "custom_components/econet300"
+        for filename in ("strings.json", "translations/en.json"):
+            translations = json.loads((base / filename).read_text())
+            assert (
+                translations["entity"]["sensor"][translation_key]["name"]
+                == english_name
+            )
+        for filename in ("translations/pl.json", "translations/de.json"):
+            translations = json.loads((base / filename).read_text())
+            assert translations["entity"]["sensor"][translation_key]["name"]
 
     # ruff: noqa: PLR6301
     def test_create_sensor_entity_description(self):

@@ -565,6 +565,12 @@
       }
     },
     "sensor": {
+      "encryption": {
+        "name": "Encryption"
+      },
+      "panel_ver": {
+        "name": "Panel version"
+      },
       "health_data_age": {
         "name": "Data age"
       },
