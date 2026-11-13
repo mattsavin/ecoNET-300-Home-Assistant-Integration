@@ -113,8 +113,27 @@
           "custom_entities": "Custom Entities",
           "device_settings": "Device settings",
           "diagnostics": "Generate diagnostics report",
+          "hide_existing_raw": "Hide existing raw parameters",
           "polling_settings": "Polling settings"
         }
+      },
+      "hide_existing_raw": {
+        "title": "Hide existing raw parameters",
+        "description": "Select visible raw editable parameters to hide from the normal UI ({eligible_count} eligible). Core DHW and Circuit 1 controls, already-hidden entries, disabled entries and custom entities are excluded. Hiding does not disable entities or remove them from automations. Review and unhide individual entities later in Home Assistant.",
+        "data": {
+          "selected_entities": "Visible raw entities to hide"
+        }
+      },
+      "confirm_hide_raw": {
+        "title": "Confirm hiding raw parameters",
+        "description": "You selected {count} entity/entities to hide:\n\n{entities}\n\nHidden entities remain enabled and continue working in automations. Home Assistant does not record a separate undo log for integration-hidden entries; re-show individual entities from the entity registry if needed.",
+        "data": {
+          "confirm": "Hide the listed entities"
+        }
+      },
+      "hide_raw_result": {
+        "title": "Raw parameter hiding complete",
+        "description": "Hidden: {applied_count}\nSkipped: {skipped_count} ({skipped})\n\nAny remaining entities can be hidden or unhidden individually in Home Assistant's entity registry."
       },
       "device_settings": {
         "title": "Device settings",
@@ -188,10 +207,16 @@
     "error": {
       "cannot_connect": "Failed to connect",
       "invalid_auth": "Invalid authentication",
-      "unknown": "Unexpected error"
+      "unknown": "Unexpected error",
+      "selection_stale": "One or more selected entities changed before confirmation. Review the current list and select again."
     },
     "abort": {
-      "no_unmapped_params": "No unmapped parameters available for the selected endpoint."
+      "no_unmapped_params": "No unmapped parameters available for the selected endpoint.",
+      "integration_not_loaded": "The integration must be loaded before organising existing raw entities.",
+      "no_eligible_raw_entities": "No visible, eligible raw editable entities were found to hide.",
+      "no_raw_entities_selected": "No entities were selected. No changes were made.",
+      "hide_cancelled": "Hiding cancelled. No entities were changed.",
+      "hide_complete": "Finished updating raw parameter visibility."
     }
   },
   "device": {

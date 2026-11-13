@@ -499,3 +499,6 @@ entities are hidden by default in Home Assistant; this option does not disable t
 shown in the entity registry. This applies in every device grouping mode. Existing
 registry entries and their visibility choices are not changed when the option is
 toggled. Entity IDs and automations are unaffected; no bulk migration is performed.
+
+To clean up existing visible raw parameters without disabling them, use
+**Configure → Hide existing raw parameters** to select and confirm specific entries.

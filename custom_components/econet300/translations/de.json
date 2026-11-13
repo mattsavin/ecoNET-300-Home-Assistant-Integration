@@ -113,8 +113,27 @@
           "custom_entities": "Benutzerdefinierte Entitäten",
           "device_settings": "Geräteeinstellungen",
           "diagnostics": "Diagnosebericht erstellen",
+          "hide_existing_raw": "Vorhandene Rohparameter ausblenden",
           "polling_settings": "Abrufeinstellungen"
         }
+      },
+      "hide_existing_raw": {
+        "title": "Vorhandene Rohparameter ausblenden",
+        "description": "Wählen Sie sichtbare bearbeitbare Rohparameter aus, die in der Standardansicht ausgeblendet werden sollen ({eligible_count} geeignet). Zentrale Warmwasser- und Heizkreis-1-Steuerungen, bereits ausgeblendete, deaktivierte sowie benutzerdefinierte Entitäten werden ausgeschlossen. Das Ausblenden deaktiviert keine Entitäten und entfernt sie nicht aus Automatisierungen. Einzelne Entitäten können später im Home-Assistant-Entitätsregister wieder eingeblendet werden.",
+        "data": {
+          "selected_entities": "Sichtbare Roh-Entitäten zum Ausblenden"
+        }
+      },
+      "confirm_hide_raw": {
+        "title": "Ausblenden von Rohparametern bestätigen",
+        "description": "Sie haben {count} Entität(en) zum Ausblenden ausgewählt:\n\n{entities}\n\nAusgeblendete Entitäten bleiben aktiviert und funktionieren weiterhin in Automatisierungen. Home Assistant führt kein eigenes Rückgängig-Protokoll für durch die Integration ausgeblendete Einträge; blenden Sie einzelne Entitäten bei Bedarf im Entitätsregister wieder ein.",
+        "data": {
+          "confirm": "Aufgelistete Entitäten ausblenden"
+        }
+      },
+      "hide_raw_result": {
+        "title": "Ausblenden von Rohparametern abgeschlossen",
+        "description": "Ausgeblendet: {applied_count}\nÜbersprungen: {skipped_count} ({skipped})\n\nWeitere Entitäten können einzeln im Home-Assistant-Entitätsregister ein- oder ausgeblendet werden."
       },
       "device_settings": {
         "title": "Geräteeinstellungen",
@@ -188,10 +207,16 @@
     "error": {
       "cannot_connect": "Verbindung fehlgeschlagen",
       "invalid_auth": "Ungültige Authentifizierung",
-      "unknown": "Unerwarteter Fehler"
+      "unknown": "Unerwarteter Fehler",
+      "selection_stale": "Mindestens eine ausgewählte Entität hat sich vor der Bestätigung geändert. Prüfen Sie die aktuelle Liste und wählen Sie erneut aus."
     },
     "abort": {
-      "no_unmapped_params": "Keine nicht zugeordneten Parameter für den ausgewählten Endpunkt verfügbar."
+      "no_unmapped_params": "Keine nicht zugeordneten Parameter für den ausgewählten Endpunkt verfügbar.",
+      "integration_not_loaded": "Die Integration muss geladen sein, bevor vorhandene Roh-Entitäten geordnet werden können.",
+      "no_eligible_raw_entities": "Es wurden keine sichtbaren, geeigneten bearbeitbaren Roh-Entitäten zum Ausblenden gefunden.",
+      "no_raw_entities_selected": "Keine Entitäten ausgewählt. Es wurden keine Änderungen vorgenommen.",
+      "hide_cancelled": "Ausblenden abgebrochen. Keine Entitäten wurden geändert.",
+      "hide_complete": "Aktualisierung der Rohparameter-Sichtbarkeit abgeschlossen."
     }
   },
   "device": {

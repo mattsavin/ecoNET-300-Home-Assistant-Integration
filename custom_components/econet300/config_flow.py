@@ -12,6 +12,7 @@ from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult, OptionsFlow
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry as er
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 
@@ -61,6 +62,11 @@ from .diagnostics import (
     async_collect_extended_endpoint_snapshots,
 )
 from .mem_cache import MemCache
+from .raw_entity_hiding import (
+    RawEntityCandidate,
+    apply_raw_entity_hiding,
+    preview_raw_entities,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -310,6 +316,10 @@ class EconetOptionsFlowHandler(OptionsFlow):
         self._selected_keys: list[str] = []
         self._configure_index: int = 0
         self._entity_configs: dict[str, dict[str, Any]] = {}
+        self._hide_candidates: dict[str, RawEntityCandidate] = {}
+        self._hide_selection: list[RawEntityCandidate] = []
+        self._hide_applied: list[str] = []
+        self._hide_skipped: list[str] = []
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
@@ -321,6 +331,7 @@ class EconetOptionsFlowHandler(OptionsFlow):
                 "connection_settings",
                 "polling_settings",
                 "device_settings",
+                "hide_existing_raw",
                 "custom_entities",
                 "diagnostics",
             ],
@@ -375,6 +386,154 @@ class EconetOptionsFlowHandler(OptionsFlow):
             }
         )
         return self.async_show_form(step_id="device_settings", data_schema=schema)
+
+    # ------------------------------------------------------------------
+    # Hide existing raw editable entities (preview -> confirm -> result)
+    # ------------------------------------------------------------------
+    def _raw_hiding_runtime(self) -> tuple[str, dict[str, dict[str, Any]]] | None:
+        """Return (api.uid, editParamCatalog) when runtime data is loaded."""
+        services = self.hass.data.get(DOMAIN, {}).get(self.config_entry.entry_id)
+        if not isinstance(services, dict):
+            return None
+        api = services.get(SERVICE_API)
+        coordinator = services.get(SERVICE_COORDINATOR)
+        uid = getattr(api, "uid", None)
+        data = getattr(coordinator, "data", None)
+        catalog = data.get("editParamCatalog") if isinstance(data, dict) else None
+        if not isinstance(uid, str) or not uid or not isinstance(catalog, dict):
+            return None
+        return uid, catalog
+
+    async def async_step_hide_existing_raw(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Let user review and choose eligible visible raw parameters to hide."""
+        runtime = self._raw_hiding_runtime()
+        if runtime is None:
+            return self.async_abort(reason="integration_not_loaded")
+        uid, catalog = runtime
+        registry = er.async_get(self.hass)
+
+        if user_input is not None:
+            raw_ids = user_input.get("selected_entities", [])
+            unique_ids = list(dict.fromkeys(str(eid) for eid in raw_ids))
+            if not unique_ids:
+                return self.async_abort(reason="no_raw_entities_selected")
+            selected = [
+                self._hide_candidates[eid]
+                for eid in unique_ids
+                if eid in self._hide_candidates
+            ]
+            if len(selected) != len(unique_ids):
+                return await self._show_hide_existing_raw_form(
+                    registry, uid, catalog, errors={"base": "selection_stale"}
+                )
+            self._hide_selection = selected
+            return await self.async_step_confirm_hide_raw()
+
+        return await self._show_hide_existing_raw_form(registry, uid, catalog)
+
+    async def _show_hide_existing_raw_form(
+        self,
+        registry: er.EntityRegistry,
+        uid: str,
+        catalog: dict[str, dict[str, Any]],
+        errors: dict[str, str] | None = None,
+    ) -> ConfigFlowResult:
+        """Build and show the multi-select list of eligible visible raw entities."""
+        candidates = preview_raw_entities(
+            registry, self.config_entry.entry_id, uid, catalog
+        )
+        if not candidates:
+            return self.async_abort(reason="no_eligible_raw_entities")
+        candidates = sorted(
+            candidates,
+            key=lambda item: (int(item.param_id), item.entity_id),
+        )
+        self._hide_candidates = {item.entity_id: item for item in candidates}
+        options = {
+            item.entity_id: (
+                f"{registry.async_get(item.entity_id).name or registry.async_get(item.entity_id).original_name or item.entity_id} "  # type: ignore[union-attr]
+                f"[{item.entity_id}]"
+            )
+            for item in candidates
+        }
+        schema = vol.Schema(
+            {
+                vol.Optional("selected_entities", default=[]): cv.multi_select(options),
+            }
+        )
+        return self.async_show_form(
+            step_id="hide_existing_raw",
+            data_schema=schema,
+            errors=errors,
+            description_placeholders={"eligible_count": str(len(candidates))},
+        )
+
+    async def async_step_confirm_hide_raw(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Confirm exact entities before writing hidden_by=INTEGRATION."""
+        if user_input is not None:
+            if not user_input.get("confirm", False):
+                return self.async_abort(reason="hide_cancelled")
+            runtime = self._raw_hiding_runtime()
+            if runtime is None:
+                return self.async_abort(reason="integration_not_loaded")
+            uid, catalog = runtime
+            registry = er.async_get(self.hass)
+            current_eligible = {
+                item.entity_id: item
+                for item in preview_raw_entities(
+                    registry, self.config_entry.entry_id, uid, catalog
+                )
+            }
+            if any(
+                current_eligible.get(item.entity_id) != item
+                for item in self._hide_selection
+            ):
+                return await self._show_hide_existing_raw_form(
+                    registry, uid, catalog, errors={"base": "selection_stale"}
+                )
+            applied, skipped = apply_raw_entity_hiding(
+                registry,
+                self.config_entry.entry_id,
+                uid,
+                catalog,
+                self._hide_selection,
+            )
+            self._hide_applied = applied
+            self._hide_skipped = skipped
+            return await self.async_step_hide_raw_result()
+
+        lines = "\n".join(f"- `{item.entity_id}`" for item in self._hide_selection)
+        schema = vol.Schema({vol.Required("confirm", default=False): bool})
+        return self.async_show_form(
+            step_id="confirm_hide_raw",
+            data_schema=schema,
+            description_placeholders={
+                "count": str(len(self._hide_selection)),
+                "entities": lines,
+            },
+        )
+
+    async def async_step_hide_raw_result(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Show actual applied/skipped summary and finish without altering options."""
+        if user_input is not None:
+            return self.async_abort(reason="hide_complete")
+
+        skipped_text = ", ".join(self._hide_skipped) if self._hide_skipped else "None"
+        return self.async_show_form(
+            step_id="hide_raw_result",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "applied_count": str(len(self._hide_applied)),
+                "skipped_count": str(len(self._hide_skipped)),
+                "skipped": skipped_text,
+            },
+        )
 
     # ------------------------------------------------------------------
     # Polling settings

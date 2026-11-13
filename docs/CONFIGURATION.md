@@ -135,3 +135,13 @@ entities are hidden by default in Home Assistant; this option does not disable t
 shown in the entity registry. This applies in every device grouping mode. Existing
 registry entries and their visibility choices are not changed when the option is
 toggled. Entity IDs and automations are unaffected; no bulk migration is performed.
+
+## Hiding existing raw parameters
+
+Use **Configure → Hide existing raw parameters** to review visible generic editable
+number, select and switch entities and hide selected ones explicitly.
+
+- Nothing is pre-selected; changes apply only after reviewing the exact entity list and confirming.
+- Core DHW and Circuit 1 controls, custom entities, already-hidden entries and disabled entries are excluded from selection.
+- Hiding does not disable entities or remove them from automations.
+- Home Assistant records only `hidden_by=integration` without an integration undo log; unhide individual entities from Home Assistant's entity registry if needed.

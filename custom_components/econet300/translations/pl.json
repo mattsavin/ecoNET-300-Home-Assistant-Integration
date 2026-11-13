@@ -113,8 +113,27 @@
           "custom_entities": "Własne encje",
           "device_settings": "Ustawienia urządzeń",
           "diagnostics": "Wygeneruj raport diagnostyczny",
+          "hide_existing_raw": "Ukryj istniejące parametry surowe",
           "polling_settings": "Ustawienia odpytywania"
         }
+      },
+      "hide_existing_raw": {
+        "title": "Ukryj istniejące parametry surowe",
+        "description": "Wybierz widoczne surowe parametry edytowalne do ukrycia w standardowym widoku ({eligible_count} kwalifikujących się). Podstawowe sterowanie CWU i obiegu 1, encje już ukryte, wyłączone oraz własne są pomijane. Ukrycie nie wyłącza encji ani nie usuwa ich z automatyzacji. Później możesz ponownie pokazać pojedyncze encje w rejestrze Home Assistant.",
+        "data": {
+          "selected_entities": "Widoczne surowe encje do ukrycia"
+        }
+      },
+      "confirm_hide_raw": {
+        "title": "Potwierdź ukrycie parametrów surowych",
+        "description": "Wybrano {count} encji do ukrycia:\n\n{entities}\n\nUkryte encje pozostają włączone i działają w automatyzacjach. Home Assistant nie zapisuje osobnego dziennika cofania dla zmian wykonanych przez integrację; w razie potrzeby odkryj pojedyncze encje w rejestrze encji.",
+        "data": {
+          "confirm": "Ukryj wybrane encje"
+        }
+      },
+      "hide_raw_result": {
+        "title": "Zakończono ukrywanie parametrów surowych",
+        "description": "Ukryto: {applied_count}\nPominięto: {skipped_count} ({skipped})\n\nPozostałe encje można ukrywać lub odkrywać pojedynczo w rejestrze encji Home Assistant."
       },
       "device_settings": {
         "title": "Ustawienia urządzeń",
@@ -188,10 +207,16 @@
     "error": {
       "cannot_connect": "Błąd połączenia",
       "invalid_auth": "Błąd autoryzacji",
-      "unknown": "Niespodziewany błąd"
+      "unknown": "Niespodziewany błąd",
+      "selection_stale": "Jedna lub więcej wybranych encji zmieniła się przed potwierdzeniem. Sprawdź aktualną listę i wybierz ponownie."
     },
     "abort": {
-      "no_unmapped_params": "Brak niezmapowanych parametrów dla wybranego endpointu."
+      "no_unmapped_params": "Brak niezmapowanych parametrów dla wybranego endpointu.",
+      "integration_not_loaded": "Integracja musi być załadowana przed uporządkowaniem istniejących encji surowych.",
+      "no_eligible_raw_entities": "Nie znaleziono widocznych, kwalifikujących się surowych encji edytowalnych do ukrycia.",
+      "no_raw_entities_selected": "Nie wybrano żadnych encji. Nie wprowadzono zmian.",
+      "hide_cancelled": "Ukrywanie anulowane. Nie zmieniono żadnych encji.",
+      "hide_complete": "Zakończono aktualizację widoczności parametrów surowych."
     }
   },
   "device": {
