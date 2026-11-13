@@ -122,11 +122,13 @@
         "data": {
           "device_grouping": "Device grouping",
           "buffer_presence": "Buffer device grouping",
-          "selected_circuits": "Heating circuits to expose"
+          "selected_circuits": "Heating circuits to expose",
+          "hide_new_raw_parameters": "Hide newly discovered raw parameters"
         },
         "data_description": {
           "device_grouping": "Split, Single or Heat pump components (opt-in). Component mode changes device membership and hierarchy, even though the original gateway device is retained. Review device-targeted automations and areas in both directions; generated friendly names may change.",
-          "selected_circuits": "For supported ecoMAX360i gm3_pomp controllers, choose circuits 1–7. All are selected by default; clear all to exclude identifiable circuit entities. Entities with unknown or ambiguous sources remain. Excluded entities and devices remain in the registry and entities may become unavailable. Re-select a circuit to restore it."
+          "selected_circuits": "For supported ecoMAX360i gm3_pomp controllers, choose circuits 1–7. All are selected by default; clear all to exclude identifiable circuit entities. Entities with unknown or ambiguous sources remain. Excluded entities and devices remain in the registry and entities may become unavailable. Re-select a circuit to restore it.",
+          "hide_new_raw_parameters": "Only affects newly registered raw editable number, select and switch entities. Existing entities keep their visibility. This option does not disable entities; hidden entities can be shown in the entity registry."
         }
       },
       "polling_settings": {

@@ -28,6 +28,7 @@ from .const import (
     CONF_DEVICE_GROUPING,
     CONF_ENTRY_DESCRIPTION,
     CONF_ENTRY_TITLE,
+    CONF_HIDE_NEW_RAW_PARAMETERS,
     CONF_POLL_EDIT_PARAMS,
     CONF_POLL_REG_PARAMS,
     CONF_POLL_SYS_PARAMS,
@@ -363,6 +364,10 @@ class EconetOptionsFlowHandler(OptionsFlow):
                         BUFFER_PRESENCE_ABSENT: "No separate buffer group",
                     }
                 ),
+                vol.Required(
+                    CONF_HIDE_NEW_RAW_PARAMETERS,
+                    default=options.get(CONF_HIDE_NEW_RAW_PARAMETERS, False),
+                ): bool,
                 vol.Required(
                     CONF_SELECTED_CIRCUITS,
                     default=options.get(CONF_SELECTED_CIRCUITS, circuits),

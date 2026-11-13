@@ -151,6 +151,7 @@ STALE_AFTER_SECONDS = 600
 # =============================================================================
 # Controls whether entities are exposed under separate per-component devices
 # (split) or merged under a single PLUM ecoNET300 device (single).
+CONF_HIDE_NEW_RAW_PARAMETERS = "hide_new_raw_parameters"
 CONF_DEVICE_GROUPING = "device_grouping"
 CONF_BUFFER_PRESENCE = "buffer_presence"
 CONF_SELECTED_CIRCUITS = "selected_circuits"

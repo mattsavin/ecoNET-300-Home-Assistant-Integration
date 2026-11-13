@@ -122,11 +122,13 @@
         "data": {
           "device_grouping": "Grupowanie urządzeń",
           "buffer_presence": "Grupowanie urządzenia bufora",
-          "selected_circuits": "Obiegi grzewcze do wyświetlenia"
+          "selected_circuits": "Obiegi grzewcze do wyświetlenia",
+          "hide_new_raw_parameters": "Ukrywaj nowo wykryte parametry surowe"
         },
         "data_description": {
           "device_grouping": "Split, Single lub Heat pump components (opt-in). Tryb komponentów zmienia przypisanie encji i hierarchię urządzeń, mimo zachowania pierwotnego urządzenia bramki. W obu kierunkach sprawdź automatyzacje wskazujące urządzenia i przypisania do obszarów; automatycznie nadawane nazwy mogą się zmienić.",
-          "selected_circuits": "Dla obsługiwanych sterowników ecoMAX360i z gm3_pomp wybierz obiegi 1–7. Domyślnie wybrane są wszystkie; pusta lista wyklucza encje, które można przypisać do obiegu. Encje o nieznanym lub niejednoznacznym źródle pozostają. Wykluczone encje i urządzenia pozostają w rejestrze, a encje mogą być niedostępne. Ponowne wybranie przywraca obieg."
+          "selected_circuits": "Dla obsługiwanych sterowników ecoMAX360i z gm3_pomp wybierz obiegi 1–7. Domyślnie wybrane są wszystkie; pusta lista wyklucza encje, które można przypisać do obiegu. Encje o nieznanym lub niejednoznacznym źródle pozostają. Wykluczone encje i urządzenia pozostają w rejestrze, a encje mogą być niedostępne. Ponowne wybranie przywraca obieg.",
+          "hide_new_raw_parameters": "Dotyczy tylko nowo rejestrowanych surowych encji edytowalnych typu liczba, wybór i przełącznik. Widoczność istniejących encji pozostaje bez zmian. Ta opcja nie wyłącza encji; ukryte encje można pokazać w rejestrze encji."
         }
       },
       "polling_settings": {

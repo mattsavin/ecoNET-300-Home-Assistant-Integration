@@ -30,6 +30,7 @@ from .const import (
     BUFFER_PRESENCE_UNKNOWN,
     CONF_BUFFER_PRESENCE,
     CONF_DEVICE_GROUPING,
+    CONF_HIDE_NEW_RAW_PARAMETERS,
     CONF_POLL_EDIT_PARAMS,
     CONF_POLL_REG_PARAMS,
     CONF_POLL_SYS_PARAMS,
@@ -261,6 +262,7 @@ class EconetDataCoordinator(DataUpdateCoordinator):
         self._device_grouping = options.get(
             CONF_DEVICE_GROUPING, DEFAULT_DEVICE_GROUPING
         )
+        self.hide_new_raw_parameters = options.get(CONF_HIDE_NEW_RAW_PARAMETERS, False)
         self.buffer_presence = options.get(
             CONF_BUFFER_PRESENCE, BUFFER_PRESENCE_UNKNOWN
         )

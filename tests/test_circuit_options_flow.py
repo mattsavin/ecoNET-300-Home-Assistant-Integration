@@ -40,3 +40,28 @@ async def test_circuit_selection_defaults_saves_and_reopens():
         for invalid in (["0"], ["8"], [1], "1"):
             with pytest.raises(vol.Invalid):
                 reopened({"selected_circuits": invalid})
+
+
+@pytest.mark.asyncio
+async def test_raw_visibility_option_defaults_and_persists():
+    """The option is opt-in and retained along with other settings."""
+    handler = EconetOptionsFlowHandler()
+    handler.hass = MagicMock()
+    handler.async_show_form = MagicMock()
+    handler.async_create_entry = MagicMock()
+    entry = MagicMock(options={"other": "kept"}, entry_id="e1")
+    with patch.object(
+        EconetOptionsFlowHandler, "config_entry", new_callable=PropertyMock
+    ) as config:
+        config.return_value = entry
+        await handler.async_step_device_settings()
+        schema = handler.async_show_form.call_args.kwargs["data_schema"]
+        assert schema({})["hide_new_raw_parameters"] is False
+        await handler.async_step_device_settings(
+            schema({"hide_new_raw_parameters": True})
+        )
+        entry.options = handler.async_create_entry.call_args.kwargs["data"]
+        assert entry.options["other"] == "kept"
+        await handler.async_step_device_settings()
+        schema = handler.async_show_form.call_args.kwargs["data_schema"]
+        assert schema({})["hide_new_raw_parameters"] is True

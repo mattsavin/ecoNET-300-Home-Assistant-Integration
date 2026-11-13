@@ -126,3 +126,12 @@ ECONET300_DIAGNOSTICS_REPORT
 ```
 
 Attach the matching log block or the standard Home Assistant diagnostics download when reporting an issue.
+
+## Newly discovered raw parameter visibility
+
+In **Device settings**, **Hide newly discovered raw parameters** is off by default.
+When enabled, newly registered generic editable parameter number, select and switch
+entities are hidden by default in Home Assistant; this option does not disable them, and they can be
+shown in the entity registry. This applies in every device grouping mode. Existing
+registry entries and their visibility choices are not changed when the option is
+toggled. Entity IDs and automations are unaffected; no bulk migration is performed.

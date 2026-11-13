@@ -1419,6 +1419,9 @@ class EditParamNumber(CoordinatorEntity[EconetDataCoordinator], NumberEntity):
     ) -> None:
         """Initialize the editable number entity for the given parameter id."""
         super().__init__(coordinator)
+        self._attr_entity_registry_visible_default = (
+            not coordinator.hide_new_raw_parameters
+        )
         self._api = api
         self._pid = str(pid)
 

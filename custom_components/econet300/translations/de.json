@@ -122,11 +122,13 @@
         "data": {
           "device_grouping": "Gerätegruppierung",
           "buffer_presence": "Pufferspeicher-Gerätegruppierung",
-          "selected_circuits": "Anzuzeigende Heizkreise"
+          "selected_circuits": "Anzuzeigende Heizkreise",
+          "hide_new_raw_parameters": "Neu erkannte Rohparameter ausblenden"
         },
         "data_description": {
           "device_grouping": "Split, Single oder Heat pump components (opt-in). Der Komponentenmodus ändert die Zuordnung der Entitäten und die Gerätehierarchie, obwohl das ursprüngliche Gateway-Gerät erhalten bleibt. Prüfen Sie in beiden Richtungen gerätebezogene Automatisierungen und Bereichszuordnungen; automatisch erzeugte Anzeigenamen können sich ändern.",
-          "selected_circuits": "Wählen Sie für unterstützte ecoMAX360i-Steuerungen mit gm3_pomp die Heizkreise 1–7. Standardmäßig sind alle ausgewählt; eine leere Auswahl schließt zuordenbare Heizkreis-Entitäten aus. Entitäten mit unbekannter oder mehrdeutiger Quelle bleiben erhalten. Ausgeschlossene Entitäten und Geräte bleiben im Register und Entitäten können nicht verfügbar werden. Erneutes Auswählen stellt den Heizkreis wieder her."
+          "selected_circuits": "Wählen Sie für unterstützte ecoMAX360i-Steuerungen mit gm3_pomp die Heizkreise 1–7. Standardmäßig sind alle ausgewählt; eine leere Auswahl schließt zuordenbare Heizkreis-Entitäten aus. Entitäten mit unbekannter oder mehrdeutiger Quelle bleiben erhalten. Ausgeschlossene Entitäten und Geräte bleiben im Register und Entitäten können nicht verfügbar werden. Erneutes Auswählen stellt den Heizkreis wieder her.",
+          "hide_new_raw_parameters": "Betrifft nur neu registrierte bearbeitbare Rohparameter als Zahlen-, Auswahl- und Schalterentitäten. Die Sichtbarkeit bestehender Entitäten bleibt unverändert. Diese Option deaktiviert keine Entitäten; ausgeblendete Entitäten können im Entitätsregister eingeblendet werden."
         }
       },
       "polling_settings": {
