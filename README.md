@@ -143,7 +143,7 @@ The integration provides multiple entity types:
 | Binary Sensors | 25+   | Pumps, fans, connections, alarms       |
 | Calendars      | 1-20  | Weekly heating schedules per component |
 | Events         | 1     | Boiler alarm triggered / cleared       |
-| Water Heater   | 1     | DHW temperature, target and work mode (ecoMAX360i) |
+| Water Heater   | 1     | DHW temperature, target, work mode and boost override (ecoMAX360i) |
 | Buttons        | 1     | DHW one-shot boost trigger (ecoMAX360i) |
 | Switches       | 1     | Boiler ON/OFF control                  |
 | Select         | 1+    | Heater mode, dynamic parameters        |

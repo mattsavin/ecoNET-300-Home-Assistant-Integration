@@ -1,8 +1,9 @@
 """Tests for the capability-gated ecoMAX360i DHW entity."""
 
 import json
+import time
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock, MagicMock, call
 
 from homeassistant.const import Platform
 import pytest
@@ -24,6 +25,8 @@ def make_coordinator():
     }
     coordinator.single_device_tree = False
     coordinator.controller_device_id = None
+    coordinator.edit_params_last_fetch = time.time()
+    coordinator._poll_edit_params = 300
     coordinator.async_request_refresh = AsyncMock()
     return coordinator
 
@@ -177,7 +180,202 @@ def test_dhw_mode_mapping(raw, expected):
     c.data["editParams"]["119"]["value"] = raw
     e = EconetWaterHeater(c, MagicMock())
     assert e.current_operation == expected
-    assert e.operation_list == ["off", "on", "schedule"]
+    assert e.operation_list == ["off", "on", "schedule", "boost"]
+
+
+@pytest.mark.asyncio
+async def test_selecting_boost_starts_controller_override():
+    """Boost starts independently of the underlying DHW work mode."""
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    entity = EconetWaterHeater(c, api)
+    await entity.async_set_operation_mode("boost")
+    api.set_param.assert_awaited_once_with("115", 1)
+    c.store_edit_param_write.assert_called_once_with("115", 1)
+
+
+@pytest.mark.asyncio
+async def test_home_assistant_dispatcher_accepts_boost_mode():
+    """The actual water-heater operation service accepts the offered mode."""
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    await EconetWaterHeater(c, api).async_handle_set_operation_mode("boost")
+    api.set_param.assert_awaited_once_with("115", 1)
+
+
+def test_active_boost_is_reported_until_controller_clears_it():
+    """The controller's boost state overrides, but does not change, its mode."""
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["119"]["value"] = 2
+    c.data["editParams"]["115"]["value"] = 1
+    entity = EconetWaterHeater(c, MagicMock())
+    assert entity.current_operation == "boost"
+    c.data["editParams"]["115"]["value"] = 0
+    assert entity.current_operation == "schedule"
+
+
+def test_unknown_boost_state_does_not_claim_schedule():
+    """A missing boost state must not be interpreted as inactive."""
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["115"]["value"] = None
+    assert EconetWaterHeater(c, MagicMock()).current_operation is None
+
+
+def test_boost_state_becomes_unknown_when_edit_params_are_stale():
+    """Never report a cached boost indefinitely with polling disabled."""
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c._poll_edit_params = 0
+    c.edit_params_last_fetch = time.time() - 3601
+    c.data["editParams"]["115"]["value"] = 1
+    assert EconetWaterHeater(c, MagicMock()).current_operation is None
+
+
+@pytest.mark.asyncio
+async def test_unknown_boost_state_rejects_mode_change():
+    """Do not claim to cancel an override whose state is unknown."""
+    from homeassistant.exceptions import HomeAssistantError
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["115"]["value"] = None
+    api = MagicMock(uid="test-controller", set_param=AsyncMock())
+    with pytest.raises(HomeAssistantError):
+        await EconetWaterHeater(c, api).async_set_operation_mode("schedule")
+    api.set_param.assert_not_awaited()
+
+
+def test_locked_boost_still_reports_its_active_state():
+    """A locked override is still active even when it cannot be cancelled."""
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["115"].update(value=1, locked=True)
+    entity = EconetWaterHeater(c, MagicMock())
+    assert entity.current_operation == "boost"
+    assert "boost" in entity.operation_list
+
+
+@pytest.mark.asyncio
+async def test_selecting_existing_mode_cancels_boost_without_changing_mode():
+    """Cancel the boost and preserve the controller's scheduled mode."""
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["119"]["value"] = 2
+    c.data["editParams"]["115"]["value"] = 1
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    await EconetWaterHeater(c, api).async_set_operation_mode("schedule")
+    assert api.set_param.await_args_list == [call("119", 2), call("115", 0)]
+
+
+@pytest.mark.asyncio
+async def test_selecting_off_cancels_even_if_cached_boost_is_inactive():
+    """An externally started boost may not yet appear in cached data."""
+    from unittest.mock import call
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["115"]["value"] = 0
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    await EconetWaterHeater(c, api).async_set_operation_mode("off")
+    assert api.set_param.await_args_list == [call("119", 0), call("115", 0)]
+
+
+@pytest.mark.asyncio
+async def test_normal_mode_without_boost_capability_does_not_write_boost():
+    """Controllers without the override retain ordinary mode control."""
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    del c.data["editParams"]["115"]
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    entity = EconetWaterHeater(c, api)
+    assert "boost" not in entity.operation_list
+    await entity.async_set_operation_mode("off")
+    api.set_param.assert_awaited_once_with("119", 0)
+
+
+@pytest.mark.asyncio
+async def test_locked_boost_prevents_mode_change_before_any_write():
+    """Do not claim a mode change cancelled a boost that cannot be cleared."""
+    from homeassistant.exceptions import HomeAssistantError
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["115"].update(value=1, locked=True)
+    api = MagicMock(uid="test-controller", set_param=AsyncMock())
+    with pytest.raises(HomeAssistantError):
+        await EconetWaterHeater(c, api).async_set_operation_mode("off")
+    api.set_param.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_changing_mode_during_boost_sets_mode_then_cancels():
+    """The requested mode is established before cancelling the override."""
+    from unittest.mock import call
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["119"]["value"] = 2
+    c.data["editParams"]["115"]["value"] = 1
+    api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
+    await EconetWaterHeater(c, api).async_set_operation_mode("on")
+    assert api.set_param.await_args_list == [call("119", 1), call("115", 0)]
+
+
+@pytest.mark.asyncio
+async def test_partial_mode_change_refreshes_after_failed_boost_cancellation():
+    """A failed second write does not hide a successful first write."""
+    from homeassistant.exceptions import HomeAssistantError
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    c.data["editParams"]["119"]["value"] = 2
+    c.data["editParams"]["115"]["value"] = 1
+    api = MagicMock(
+        uid="test-controller", set_param=AsyncMock(side_effect=[True, False])
+    )
+    with pytest.raises(HomeAssistantError):
+        await EconetWaterHeater(c, api).async_set_operation_mode("on")
+    c.force_edit_params_refresh.assert_called_once()
+    c.async_request_refresh.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "change", ["missing", "locked", "readonly", "stale", "offline"]
+)
+async def test_unsafe_boost_mode_never_writes(change):
+    """Do not start boost with unavailable or unsafe metadata."""
+    from homeassistant.exceptions import HomeAssistantError
+    from custom_components.econet300.water_heater import EconetWaterHeater
+
+    c = make_coordinator()
+    if change == "missing":
+        del c.data["editParams"]["115"]
+    elif change == "locked":
+        c.data["editParams"]["115"]["locked"] = True
+    elif change == "readonly":
+        c.data["editParams"]["115"]["edit"] = False
+    else:
+        c.data["_health"]["stale" if change == "stale" else "online"] = (
+            change == "stale"
+        )
+    api = MagicMock(uid="test-controller", set_param=AsyncMock())
+    entity = EconetWaterHeater(c, api)
+    with pytest.raises(HomeAssistantError):
+        await entity.async_set_operation_mode("boost")
+    api.set_param.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -190,7 +388,7 @@ async def test_mode_write_is_dhw_only(mode, value):
     api = MagicMock(uid="test-controller", set_param=AsyncMock(return_value=True))
     e = EconetWaterHeater(c, api)
     await e.async_set_operation_mode(mode)
-    api.set_param.assert_awaited_once_with("119", value)
+    assert api.set_param.await_args_list == [call("119", value), call("115", 0)]
     c.force_edit_params_refresh.assert_called_once()
     c.async_request_refresh.assert_awaited_once()
 
@@ -207,7 +405,7 @@ async def test_unsafe_mode_write_is_rejected(change):
     c = make_coordinator()
     mode = "schedule"
     if change == "unknown":
-        mode = "boost"
+        mode = "unsupported"
     elif change == "readonly":
         c.data["editParams"]["119"]["edit"] = False
     elif change == "locked":

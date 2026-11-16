@@ -371,6 +371,11 @@ class EconetDataCoordinator(DataUpdateCoordinator):
         """Force editParams refresh on the next coordinator update."""
         self._edit_params_force_refresh = True
 
+    @property
+    def edit_params_last_fetch(self) -> float:
+        """Return the timestamp of the last successful editParams fetch."""
+        return self._edit_params_last_fetch
+
     def store_edit_param_write(self, key: str, value: float) -> None:
         """Keep a written editParams value until editParams is read again.
 

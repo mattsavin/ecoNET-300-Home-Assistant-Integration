@@ -166,13 +166,23 @@ entity combining the controller's own DHW data, plus a momentary boost button.
 
 | Entity              | Platform     | Description                                              |
 | ------------------- | ------------ | -------------------------------------------------------- |
-| `DHW`               | `water_heater` | Cylinder temperature, target setpoint (param 103) and DHW work mode (param 119: off/on/schedule) |
+| `DHW`               | `water_heater` | Cylinder temperature, target setpoint, work mode and boost override |
 | `DHW boost`         | `button`     | Triggers one-shot DHW loading (`HDWStartOneLoading`, param 115) |
 
 Both entities are created only when the controller reports an ecoMAX360i with
 `gm3_pomp` protocol and writable DHW setpoint metadata; other controllers are
 unaffected. Writes are validated against the controller's own `min`/`max`
 metadata before being sent.
+
+When writable `HDWStartOneLoading` metadata is available, the water heater's
+operation modes include `boost`. Selecting it starts the controller's one-loading
+override without changing its off/on/schedule setting. Selecting a normal mode
+while boost is active cancels the override and sets that mode. Boost ends under
+controller control; the displayed state depends on edit-parameter polling and may
+lag. When the last successful edit-parameter read is over ten minutes old, the
+operation state becomes unknown rather than presenting stale boost information.
+This can happen if periodic polling is disabled or set to a longer interval. The
+switch and button remain available as separate entities.
 
 ### Temperature Sensors
 

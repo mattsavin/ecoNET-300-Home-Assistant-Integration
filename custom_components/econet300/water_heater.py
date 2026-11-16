@@ -1,6 +1,7 @@
 """DHW water heater for ecoMAX360i controllers with explicit setpoint metadata."""
 
 import math
+import time
 from typing import Any
 
 from homeassistant.components.button import ButtonEntity
@@ -25,7 +26,8 @@ from .entity import _main_device_info
 
 DHW_SETPOINT_PARAM = "103"
 DHW_MODE_PARAM = "119"
-DHW_BOOST_PARAM = "115"  # HDWStartOneLoading, momentary one-shot trigger
+DHW_BOOST_PARAM = "115"  # HDWStartOneLoading, single-loading override
+DHW_BOOST_STATE_MAX_AGE = 600
 # ecoMAX360i mapping: 0=off, 1=on, 2=schedule. 0 and 2 observed live; 1=on
 # confirmed by the user against the controller. Also corroborated by the
 # vendor enum 101:['off','on','schedule'] in
@@ -58,7 +60,7 @@ def _valid_setpoint(data: dict[str, Any]) -> bool:
 
 
 def _valid_boost_param(data: dict[str, Any]) -> bool:
-    """Return True when the momentary boost trigger is present and writable."""
+    """Return True when the boost control is present and writable."""
     entry = (data.get("editParams") or {}).get(DHW_BOOST_PARAM)
     return (
         isinstance(entry, dict)
@@ -88,7 +90,6 @@ class EconetWaterHeater(CoordinatorEntity[EconetDataCoordinator], WaterHeaterEnt
         WaterHeaterEntityFeature.TARGET_TEMPERATURE
         | WaterHeaterEntityFeature.OPERATION_MODE
     )
-    _attr_operation_list = ["off", "on", "schedule"]
     _attr_native_temperature_unit = UnitOfTemperature.CELSIUS
     _attr_target_temperature_step = 1.0
 
@@ -131,8 +132,32 @@ class EconetWaterHeater(CoordinatorEntity[EconetDataCoordinator], WaterHeaterEnt
         )
 
     @property
+    def operation_list(self) -> list[str]:
+        """List boost only when the controller exposes its writable control."""
+        modes = list(DHW_MODES.values())
+        if (
+            _valid_boost_param(self.coordinator.data or {})
+            or self.current_operation == "boost"
+        ):
+            modes.append("boost")
+        return modes
+
+    @property
     def current_operation(self) -> str | None:
         """Return DHW policy, not compressor activity."""
+        data = self.coordinator.data or {}
+        boost = (data.get("editParams") or {}).get(DHW_BOOST_PARAM, {})
+        if isinstance(boost, dict) and boost.get("name") == "HDWStartOneLoading":
+            if (
+                time.time() - self.coordinator.edit_params_last_fetch
+                > DHW_BOOST_STATE_MAX_AGE
+            ):
+                return None
+            boost_value = boost.get("value")
+            if type(boost_value) is not int or boost_value not in (0, 1):
+                return None
+            if boost_value == 1:
+                return "boost"
         entry = (
             (self.coordinator.data or {}).get("editParams", {}).get(DHW_MODE_PARAM, {})
         )
@@ -143,6 +168,17 @@ class EconetWaterHeater(CoordinatorEntity[EconetDataCoordinator], WaterHeaterEnt
 
     async def async_set_operation_mode(self, operation_mode: str) -> None:
         """Change only the controller's DHW user mode."""
+        if operation_mode == "boost":
+            if not self.available or not _valid_boost_param(
+                self.coordinator.data or {}
+            ):
+                raise HomeAssistantError("DHW boost is unavailable or unsupported")
+            if not await self._api.set_param(DHW_BOOST_PARAM, 1):
+                raise HomeAssistantError("Controller rejected the DHW boost")
+            self.coordinator.store_edit_param_write(DHW_BOOST_PARAM, 1)
+            self.coordinator.force_edit_params_refresh()
+            await self.coordinator.async_request_refresh()
+            return
         entry = (
             (self.coordinator.data or {}).get("editParams", {}).get(DHW_MODE_PARAM, {})
         )
@@ -158,10 +194,34 @@ class EconetWaterHeater(CoordinatorEntity[EconetDataCoordinator], WaterHeaterEnt
         value = next(
             value for value, name in DHW_MODES.items() if name == operation_mode
         )
-        if not await self._api.set_param(DHW_MODE_PARAM, value):
-            raise HomeAssistantError("Controller rejected the DHW mode")
-        self.coordinator.force_edit_params_refresh()
-        await self.coordinator.async_request_refresh()
+        data = self.coordinator.data or {}
+        boost = (data.get("editParams") or {}).get(DHW_BOOST_PARAM, {})
+        boost_present = (
+            isinstance(boost, dict) and boost.get("name") == "HDWStartOneLoading"
+        )
+        if boost_present:
+            boost_value = boost.get("value")
+            if type(boost_value) is not int or boost_value not in (0, 1):
+                raise HomeAssistantError("DHW boost state is unknown")
+        if boost_present and not _valid_boost_param(data):
+            raise HomeAssistantError("DHW boost cancellation is unavailable")
+        wrote = False
+        try:
+            if not await self._api.set_param(DHW_MODE_PARAM, value):
+                raise HomeAssistantError("Controller rejected the DHW mode")
+            wrote = True
+            self.coordinator.store_edit_param_write(DHW_MODE_PARAM, value)
+            if boost_present:
+                if not await self._api.set_param(DHW_BOOST_PARAM, 0):
+                    raise HomeAssistantError(
+                        "Controller rejected DHW boost cancellation"
+                    )
+                wrote = True
+                self.coordinator.store_edit_param_write(DHW_BOOST_PARAM, 0)
+        finally:
+            if wrote:
+                self.coordinator.force_edit_params_refresh()
+                await self.coordinator.async_request_refresh()
 
     @property
     def min_temp(self) -> float:
